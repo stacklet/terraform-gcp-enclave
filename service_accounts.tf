@@ -8,7 +8,7 @@ locals {
           var.stacklet_aws.execution_role,
           var.stacklet_aws.platform_role,
         ]
-        permissions = [
+        roles = [
           "roles/browser",
           "roles/cloudasset.viewer",
         ]
@@ -18,7 +18,7 @@ locals {
         assumable_from = [
           var.stacklet_aws.cost_export_role,
         ]
-        permissions = ["roles/bigquery.jobUser"]
+        roles = ["roles/bigquery.jobUser"]
       },
     ],
     var.extra_service_accounts,
@@ -33,11 +33,11 @@ locals {
 
   org_bindings = flatten([
     for sa in local.service_accounts : [
-      for perm in sa.permissions : [
+      for role in sa.roles : [
         for org_id in var.access_scope.org_ids : {
-          key      = "${sa.name}|${perm}|${org_id}"
+          key      = "${sa.name}|${role}|${org_id}"
           sa_email = google_service_account.sa[sa.name].email
-          role     = perm
+          role     = role
           org_id   = org_id
         }
       ]
@@ -46,11 +46,11 @@ locals {
 
   folder_bindings = flatten([
     for sa in local.service_accounts : [
-      for perm in sa.permissions : [
+      for role in sa.roles : [
         for folder_id in var.access_scope.folder_ids : {
-          key       = "${sa.name}|${perm}|${folder_id}"
+          key       = "${sa.name}|${role}|${folder_id}"
           sa_email  = google_service_account.sa[sa.name].email
-          role      = perm
+          role      = role
           folder_id = folder_id
         }
       ]
@@ -59,11 +59,11 @@ locals {
 
   project_bindings = flatten([
     for sa in local.service_accounts : [
-      for perm in sa.permissions : [
+      for role in sa.roles : [
         for project_id in var.access_scope.project_ids : {
-          key        = "${sa.name}|${perm}|${project_id}"
+          key        = "${sa.name}|${role}|${project_id}"
           sa_email   = google_service_account.sa[sa.name].email
-          role       = perm
+          role       = role
           project_id = project_id
         }
       ]
@@ -72,11 +72,11 @@ locals {
 
   denied_folder_bindings = flatten([
     for sa in local.service_accounts : [
-      for perm in sa.permissions : [
+      for role in sa.roles : [
         for folder_id in var.access_scope.denied_folder_ids : {
-          key       = "${sa.name}|${perm}|${folder_id}"
+          key       = "${sa.name}|${role}|${folder_id}"
           sa_email  = google_service_account.sa[sa.name].email
-          role      = perm
+          role      = role
           folder_id = folder_id
         }
       ]
@@ -114,7 +114,7 @@ resource "google_service_account_iam_policy" "sa_access" {
   policy_data        = data.google_iam_policy.sa_access[each.key].policy_data
 }
 
-# Grant service account permissions at organization level
+# Grant service account roles at organization level
 resource "google_organization_iam_member" "sa_org_access" {
   for_each = local.org_bindings_map
 
@@ -123,7 +123,7 @@ resource "google_organization_iam_member" "sa_org_access" {
   member = "serviceAccount:${each.value.sa_email}"
 }
 
-# Grant service account permissions at folder level
+# Grant service account roles at folder level
 resource "google_folder_iam_member" "sa_folder_access" {
   for_each = local.folder_bindings_map
 
@@ -132,7 +132,7 @@ resource "google_folder_iam_member" "sa_folder_access" {
   member = "serviceAccount:${each.value.sa_email}"
 }
 
-# Grant service account permissions at project level
+# Grant service account roles at project level
 resource "google_project_iam_member" "sa_project_access" {
   for_each = local.project_bindings_map
 

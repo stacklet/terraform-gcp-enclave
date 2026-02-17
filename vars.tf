@@ -48,15 +48,21 @@ variable "extra_service_accounts" {
   type = list(object({
     name           = string
     assumable_from = list(string)
-    permissions    = list(string)
+    roles          = list(string)
   }))
   default     = []
   description = <<EOT
 Additional service accounts to create. For each one:
   - name: the service account name.
   - assumable_from: list of names (possibly with path prefix) for AWS roles that can assumed the role via WIF.
-  - permissions: GCP roles/permissions to be provided to the service account.
+  - roles: GCP roles to be provided to the service account.
 EOT
+
+  validation {
+    # max account id lenght is 30, leave room for prefix and dash
+    condition     = alltrue([for sa in var.extra_service_accounts : length(sa.name) <= 15])
+    error_message = "name can be no longer than 15 characters."
+  }
 }
 
 variable "access_scope" {
