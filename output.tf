@@ -1,6 +1,5 @@
 locals {
   wif_audience = "//iam.googleapis.com/${google_iam_workload_identity_pool_provider.aws_access.name}"
-
   service_accounts_access = [
     for sa in local.service_accounts : {
       name  = sa.name

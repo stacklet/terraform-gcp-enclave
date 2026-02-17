@@ -8,7 +8,10 @@ locals {
           var.stacklet_aws.execution_role,
           var.stacklet_aws.platform_role,
         ]
-        permissions = ["roles/cloudasset.viewer"]
+        permissions = [
+          "roles/browser",
+          "roles/cloudasset.viewer",
+        ]
       },
       {
         name = "cost-export"

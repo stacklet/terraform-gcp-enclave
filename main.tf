@@ -3,6 +3,11 @@ locals {
 
   resource_prefix = var.resource_prefix == "" ? "" : "${var.resource_prefix}-"
   project_id      = var.project.create ? google_project.integration[0].project_id : var.project.id
+
+  enabled_services = {
+    cloudresourcemanager = "cloudresourcemanager.googleapis.com"
+    iamcredentials       = "iamcredentials.googleapis.com"
+  }
 }
 
 resource "google_project" "integration" {
@@ -18,11 +23,20 @@ resource "google_project" "integration" {
   deletion_policy = "DELETE"
 }
 
-resource "google_project_service" "iamcredentials" {
+resource "google_project_service" "service" {
+  for_each = local.enabled_services
+
+  project = google_project.integration[0].project_id
+  service = each.value
+
+  disable_dependent_services = true
+}
+
+resource "google_project_service" "cloudresourcemanager" {
   count = local.project_resource_count
 
   project = google_project.integration[0].project_id
-  service = "iamcredentials.googleapis.com"
+  service = "cloudresourcemanager.googleapis.com"
 
   disable_dependent_services = true
 }
