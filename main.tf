@@ -1,13 +1,11 @@
 locals {
   project_resource_count = var.project.create ? 1 : 0
+  project_data_count     = var.project.create ? 0 : 1
 
   resource_prefix = var.resource_prefix == "" ? "" : "${var.resource_prefix}-"
-  project_id      = var.project.create ? google_project.integration[0].project_id : var.project.id
 
-  enabled_services = {
-    cloudresourcemanager = "cloudresourcemanager.googleapis.com"
-    iamcredentials       = "iamcredentials.googleapis.com"
-  }
+  project_id     = var.project.create ? google_project.integration[0].project_id : var.project.id
+  project_number = var.project.create ? google_project.integration[0].number : data.google_project.integration[0].number
 }
 
 resource "google_project" "integration" {
@@ -23,22 +21,31 @@ resource "google_project" "integration" {
   deletion_policy = "DELETE"
 }
 
-resource "google_project_service" "service" {
-  for_each = local.enabled_services
+data "google_project" "integration" {
+  count = local.project_data_count
 
-  project = google_project.integration[0].project_id
-  service = each.value
-
-  disable_dependent_services = true
+  project_id = var.project.id
 }
 
-resource "google_project_service" "cloudresourcemanager" {
-  count = local.project_resource_count
+resource "google_project_service" "service" {
+  for_each = toset([
+    "artifactregistry",
+    "cloudasset",
+    "cloudbuild",
+    "cloudfunctions",
+    "cloudresourcemanager",
+    "compute",
+    "eventarc",
+    "iam",
+    "iamcredentials",
+    "logging",
+    "pubsub",
+    "run",
+    "securitycenter",
+  ])
 
   project = google_project.integration[0].project_id
-  service = "cloudresourcemanager.googleapis.com"
-
-  disable_dependent_services = true
+  service = "${each.key}.googleapis.com"
 }
 
 resource "time_sleep" "stacklet_access_creation_delay" {

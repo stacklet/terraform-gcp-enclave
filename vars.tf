@@ -29,6 +29,11 @@ Project configuration:
 EOT
 
   validation {
+    condition     = (var.project.billing_account_id == null) || var.project.create
+    error_message = "billing_account_id is only meaningful when this module is responsible for the project."
+  }
+
+  validation {
     condition     = (var.project.org_id == null) || var.project.create
     error_message = "org_id is only meaningful when this module is responsible for the project."
   }
@@ -36,6 +41,16 @@ EOT
   validation {
     condition     = (var.project.folder_id == null) || var.project.create
     error_message = "folder_id is only meaningful when this module is responsible for the project."
+  }
+
+  validation {
+    condition     = !var.project.create || (var.project.billing_account_id != null)
+    error_message = "billing_account_id is required when creating the project."
+  }
+
+  validation {
+    condition     = !var.project.create || (var.project.org_id != null || var.project.folder_id != null)
+    error_message = "One of org_id or folder_id is required when creating the project."
   }
 
   validation {
