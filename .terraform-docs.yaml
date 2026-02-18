@@ -3,5 +3,11 @@ formatter: markdown
 output:
   file: README.md
 
+sections:
+  hide:
+    - data-sources
+    - modules
+    - resources
+
 settings:
   lockfile: false
