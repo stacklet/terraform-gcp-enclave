@@ -7,16 +7,6 @@ locals {
   }]
 }
 
-resource "google_project_service" "bigquery" {
-  count = length(var.cost_export_billing_tables) > 0 ? 1 : 0
-
-  project = local.project_id
-  service = "bigquery.googleapis.com"
-
-  disable_on_destroy         = false
-  disable_dependent_services = true
-}
-
 resource "google_bigquery_table_iam_member" "sa_bq_tables" {
   for_each = { for table in local.source_tables : table.key => table }
 

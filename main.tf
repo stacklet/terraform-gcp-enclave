@@ -30,6 +30,7 @@ data "google_project" "integration" {
 resource "google_project_service" "service" {
   for_each = toset([
     "artifactregistry",
+    "bigquery",
     "cloudasset",
     "cloudbuild",
     "cloudfunctions",
