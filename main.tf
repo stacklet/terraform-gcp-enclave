@@ -2,7 +2,7 @@ locals {
   project_resource_count = var.project.create ? 1 : 0
   project_data_count     = var.project.create ? 0 : 1
 
-  resource_prefix = var.resource_prefix == "" ? "" : "${var.resource_prefix}-"
+  prefix = var.resource_prefix == "" ? "" : "${var.resource_prefix}-"
 
   project_id     = var.project.create ? google_project.integration[0].project_id : var.project.id
   project_number = var.project.create ? google_project.integration[0].number : data.google_project.integration[0].number
@@ -59,7 +59,7 @@ resource "time_sleep" "stacklet_access_creation_delay" {
 
 resource "google_iam_workload_identity_pool" "wif_access" {
   project                   = local.project_id
-  workload_identity_pool_id = "${local.resource_prefix}wif-access"
+  workload_identity_pool_id = "${local.prefix}wif-access"
   display_name              = "Stacklet WIF access"
 
   # Identity pool creation fails if executed too soon after project creation.
@@ -69,7 +69,7 @@ resource "google_iam_workload_identity_pool" "wif_access" {
 resource "google_iam_workload_identity_pool_provider" "aws_access" {
   project                            = local.project_id
   workload_identity_pool_id          = google_iam_workload_identity_pool.wif_access.workload_identity_pool_id
-  workload_identity_pool_provider_id = "${local.resource_prefix}aws-access"
+  workload_identity_pool_provider_id = "${local.prefix}aws-access"
   display_name                       = "Stacklet AWS access"
   disabled                           = false
 

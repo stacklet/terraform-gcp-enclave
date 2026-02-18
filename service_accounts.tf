@@ -93,7 +93,7 @@ resource "google_service_account" "sa" {
   for_each = toset(local.service_accounts[*].name)
 
   project      = local.project_id
-  account_id   = "${local.resource_prefix}${each.key}"
+  account_id   = "${local.prefix}${each.key}"
   display_name = "Stacklet access - ${each.key}"
 }
 
@@ -146,7 +146,7 @@ resource "google_iam_deny_policy" "sa_deny_folder_access" {
   for_each = local.denied_folder_bindings_map
 
   parent = "cloudresourcemanager.googleapis.com/folders/${each.value.folder_id}"
-  name   = "${local.resource_prefix}deny-${each.key}"
+  name   = "${local.prefix}deny-${each.key}"
 
   rules {
     deny_rule {
