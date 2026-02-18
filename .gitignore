@@ -2,3 +2,4 @@
 *.tfstate*
 *.tfvars
 .terraform.lock.hcl
+/relay-forwarder-function.zip

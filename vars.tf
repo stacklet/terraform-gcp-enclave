@@ -9,6 +9,19 @@ variable "resource_prefix" {
   }
 }
 
+variable "location" {
+  type        = string
+  default     = "us-central1"
+  description = "Location for region-specific resources."
+}
+
+variable "bucket_location" {
+  type        = string
+  default     = "US"
+  description = "Location where to create storage buckets."
+}
+
+
 variable "project" {
   type = object({
     create             = optional(bool, true)
@@ -111,6 +124,113 @@ variable "cost_export_billing_tables" {
     condition     = alltrue([for t in var.cost_export_billing_tables : length(split(".", t)) == 3])
     error_message = "All tables must be in the form '<project_id>.<dataset_id>.<table_id>'."
   }
+}
+
+variable "events_relay" {
+  type = object({
+    aws_role_arn = string
+    aws_bus_arn  = string
+    asset_types = optional(list(string), [
+      "apikeys.googleapis.com/Key",
+      "appengine.googleapis.com/Application",
+      "bigquery.googleapis.com/Dataset",
+      "bigtableadmin.googleapis.com/Instance",
+      "cloudbilling.googleapis.com/BillingAccount",
+      "cloudfunctions.googleapis.com/CloudFunction",
+      "cloudkms.googleapis.com/KeyRing",
+      "cloudresourcemanager.googleapis.com/Folder",
+      "cloudresourcemanager.googleapis.com/Organization",
+      "cloudresourcemanager.googleapis.com/Project",
+      "compute.googleapis.com/Address",
+      "compute.googleapis.com/Autoscaler",
+      "compute.googleapis.com/BackendBucket",
+      "compute.googleapis.com/BackendService",
+      "compute.googleapis.com/Disk",
+      "compute.googleapis.com/Firewall",
+      "compute.googleapis.com/ForwardingRule",
+      "compute.googleapis.com/GlobalAddress",
+      "compute.googleapis.com/GlobalForwardingRule",
+      "compute.googleapis.com/HealthCheck",
+      "compute.googleapis.com/HttpHealthCheck",
+      "compute.googleapis.com/HttpsHealthCheck",
+      "compute.googleapis.com/Image",
+      "compute.googleapis.com/Instance",
+      "compute.googleapis.com/InstanceTemplate",
+      "compute.googleapis.com/Interconnect",
+      "compute.googleapis.com/InterconnectAttachment",
+      "compute.googleapis.com/Network",
+      "compute.googleapis.com/Project",
+      "compute.googleapis.com/Route",
+      "compute.googleapis.com/Router",
+      "compute.googleapis.com/SecurityPolicy",
+      "compute.googleapis.com/Snapshot",
+      "compute.googleapis.com/SslCertificate",
+      "compute.googleapis.com/SslPolicy",
+      "compute.googleapis.com/Subnetwork",
+      "compute.googleapis.com/TargetHttpProxy",
+      "compute.googleapis.com/TargetHttpsProxy",
+      "compute.googleapis.com/TargetInstance",
+      "compute.googleapis.com/TargetPool",
+      "compute.googleapis.com/TargetSslProxy",
+      "compute.googleapis.com/TargetTcpProxy",
+      "compute.googleapis.com/UrlMap",
+      "container.googleapis.com/Cluster",
+      "dataflow.googleapis.com/Job",
+      "datafusion.googleapis.com/Instance",
+      "dns.googleapis.com/ManagedZone",
+      "dns.googleapis.com/Policy",
+      "iam.googleapis.com/Role",
+      "iam.googleapis.com/ServiceAccount",
+      "logging.googleapis.com/LogMetric",
+      "logging.googleapis.com/LogSink",
+      "osconfig.googleapis.com/PatchDeployment",
+      "pubsub.googleapis.com/Snapshot",
+      "pubsub.googleapis.com/Subscription",
+      "pubsub.googleapis.com/Topic",
+      "redis.googleapis.com/Instance",
+      "run.googleapis.com/Job",
+      "run.googleapis.com/Revision",
+      "run.googleapis.com/Service",
+      "secretmanager.googleapis.com/Secret",
+      "serviceusage.googleapis.com/Service",
+      "spanner.googleapis.com/Instance",
+      "sqladmin.googleapis.com/Instance",
+      "storage.googleapis.com/Bucket",
+    ])
+    audit_log_include_children = optional(bool, false)
+    security_findings_filter   = optional(string, "state = \"ACTIVE\"")
+    function = optional(object({
+      debug           = optional(bool, false)
+      max_concurrency = optional(number, 80)
+      cpu             = optional(string, "1")
+      memory          = optional(string, "512M")
+      }),
+      {
+        debug           = false
+        max_concurrency = 80
+        cpu             = "1"
+        memory          = "512M"
+      }
+    )
+  })
+  description = <<EOT
+Configuration for GCP events relay to Stacklet.
+  - aws_role_arn: The ARN for the AWS role used for forwarding events to the bus.
+  - aws_bus_arn: The ARN of the event bus in AWS where events get forwarded.
+  - asset_types: The asset types that the cloud asset inventory feed provides.
+  - audit_log_include_children: Whether audit log sinks include logs from child resources (folders/projects).
+  - security_findings_filter: Filter to apply as streaming config for the security command center findings. By default all active findings are forwarded.
+  - function: Relay function options:
+    - debug: Whether to enable debug log.
+    - max_concurrency: Maximum concurrency for the Cloud function. Higher values increase throughput but require more CPU.
+                       Must be paired with adequate CPU allocation (cpu >= 1 required for concurrency > 1).
+    - cpu: CPU allocation for Cloud Function instances. Valid values: '0.08' to '8'
+           (in increments of 0.001 below 1, or 1/2/4/6/8 for >= 1).
+           Default '1' supports high concurrency. Note: GCP requires cpu >= 1 when max_concurrency > 1.
+    - memory: Memory allocation for Cloud Function instances. Valid values: '128M' to '32G'
+              in increments (e.g., '256M', '512M', '1G', '2G'). Default '512M'. Make sure
+              to configure memory values appropriately based on CPU count per GCP docs.
+EOT
 }
 
 variable "stacklet_aws" {

@@ -63,7 +63,10 @@ resource "google_iam_workload_identity_pool" "wif_access" {
   display_name              = "Stacklet WIF access"
 
   # Identity pool creation fails if executed too soon after project creation.
-  depends_on = [time_sleep.stacklet_access_creation_delay]
+  depends_on = [
+    time_sleep.stacklet_access_creation_delay,
+    google_project_service.service["iam"],
+  ]
 }
 
 resource "google_iam_workload_identity_pool_provider" "aws_access" {

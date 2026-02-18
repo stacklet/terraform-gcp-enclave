@@ -95,6 +95,8 @@ resource "google_service_account" "sa" {
   project      = local.project_id
   account_id   = "${local.prefix}${each.key}"
   display_name = "Stacklet access - ${each.key}"
+
+  depends_on = [google_project_service.service["iam"]]
 }
 
 # Grant WIF-based service account access
