@@ -33,12 +33,12 @@ variable "project" {
   })
   description = <<EOT
 Project configuration:
-  - create: Whehter to create the project.
+  - create: Whether to create the project.
   - id: ID of project to hold all resources.
   - org_id: Where to create the project (exclusive of folder_id).
   - folder_id: Where to create the project (exclusive of org_id).
-  - billing_account_id: billing account responsible for any costs incurred.
-  - labels: labels to apply to the project and applicable resources.
+  - billing_account_id: Billing account responsible for any costs incurred.
+  - labels: Labels to apply to the project and applicable resources.
 EOT
 
   validation {
@@ -81,13 +81,13 @@ variable "extra_service_accounts" {
   default     = []
   description = <<EOT
 Additional service accounts to create. For each one:
-  - name: the service account name.
-  - assumable_from: list of names (possibly with path prefix) for AWS roles that can assumed the role via WIF.
+  - name: The service account name.
+  - assumable_from: List of names (possibly with path prefix) for AWS roles that can assume the role via WIF.
   - roles: GCP roles to be provided to the service account.
 EOT
 
   validation {
-    # max account id lenght is 30, leave room for prefix and dash
+    # max account id length is 30, leave room for prefix and dash
     condition     = alltrue([for sa in var.extra_service_accounts : length(sa.name) <= 15])
     error_message = "name can be no longer than 15 characters."
   }
@@ -108,10 +108,10 @@ variable "access_scope" {
   }
   description = <<EOT
 Scope where service account permissions should be granted:
-  - org_ids: list of organization IDs.
-  - folder_ids: list of folder IDs.
-  - project_ids: list of project IDs.
-  - denied_folder_ids: list of folder IDs to explicitly deny access to.
+  - org_ids: List of organization IDs.
+  - folder_ids: List of folder IDs.
+  - project_ids: List of project IDs.
+  - denied_folder_ids: List of folder IDs to explicitly deny access to.
 EOT
 }
 
@@ -242,12 +242,12 @@ variable "stacklet_aws" {
     cost_export_role = string
   })
   description = <<EOT
-"Details of the Stacklet deployment to integrate with in AWS (Provided by Stacklet)."
+Details of the Stacklet deployment to integrate with in AWS (Provided by Stacklet).
   - account_id: The AWS account for the deployment.
   - collector_role: Name of the role used by account discovery.
   - execution_role: Name of the role used by Execution.
   - platform_role: Name of the role used by Platform.
-  - cost_import_role: Name of the role used for billing cost import.
+  - cost_export_role: Name of the role used for billing cost export.
 EOT
 }
 

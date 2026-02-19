@@ -45,7 +45,7 @@ resource "google_project_service" "service" {
     "securitycenter",
   ])
 
-  project = google_project.integration[0].project_id
+  project = local.project_id
   service = "${each.key}.googleapis.com"
 }
 

@@ -36,7 +36,7 @@ resource "google_scc_v2_folder_notification_config" "folder_feed" {
 resource "google_scc_v2_project_notification_config" "project_feed" {
   for_each = toset(var.access_scope.project_ids)
 
-  config_id    = "${local.prefix}scc-feed-project0${each.key}"
+  config_id    = "${local.prefix}scc-feed-project-${each.key}"
   project      = each.key
   pubsub_topic = google_pubsub_topic.scc_findings_feed.id
 
