@@ -15,26 +15,24 @@ resource "google_pubsub_topic" "audit_feed" {
 }
 
 # Workaround for https://github.com/hashicorp/terraform-provider-google/issues/10811
-# Separate resources for include_children true/false to force recreation on change
-
-resource "google_logging_organization_sink" "audit_feed_with_children" {
-  for_each = toset(var.events_relay.audit_log_include_children ? var.access_scope.org_ids : [])
-
-  name             = "${local.prefix}audit-feed-org-with-children-${each.key}"
-  org_id           = each.key
-  filter           = local.audit_filter
-  include_children = true
-  destination      = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed.id}"
+# Depend replacement for resources using the flag on this resource to cause
+# recreation on change.
+resource "terraform_data" "audit_log_include_children" {
+  input = var.events_relay.audit_log_include_children
 }
 
-resource "google_logging_organization_sink" "audit_feed_without_children" {
-  for_each = toset(var.events_relay.audit_log_include_children ? [] : var.access_scope.org_ids)
+resource "google_logging_organization_sink" "audit_feed" {
+  for_each = toset(var.access_scope.org_ids)
 
-  name             = "${local.prefix}audit-feed-without-children-${each.key}"
+  name             = "${local.prefix}audit-feed-org-${each.key}"
   org_id           = each.key
   filter           = local.audit_filter
-  include_children = false
+  include_children = var.events_relay.audit_log_include_children
   destination      = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed.id}"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.audit_log_include_children]
+  }
 }
 
 resource "google_pubsub_topic_iam_member" "audit_feed_publisher_org" {
@@ -43,31 +41,21 @@ resource "google_pubsub_topic_iam_member" "audit_feed_publisher_org" {
   project = local.project_id
   topic   = google_pubsub_topic.audit_feed.id
   role    = "roles/pubsub.publisher"
-  member = (
-    var.events_relay.audit_log_include_children ?
-    google_logging_organization_sink.audit_feed_with_children[each.key].writer_identity :
-    google_logging_organization_sink.audit_feed_without_children[each.key].writer_identity
-  )
+  member  = google_logging_organization_sink.audit_feed[each.key].writer_identity
 }
 
-resource "google_logging_folder_sink" "audit_feed_with_children" {
-  for_each = toset(var.events_relay.audit_log_include_children ? var.access_scope.folder_ids : [])
+resource "google_logging_folder_sink" "audit_feed" {
+  for_each = toset(var.access_scope.folder_ids)
 
-  name             = "${local.prefix}audit-feed-folder-with-children-${each.key}"
+  name             = "${local.prefix}audit-feed-folder-${each.key}"
   folder           = each.key
   filter           = local.audit_filter
-  include_children = true
+  include_children = var.events_relay.audit_log_include_children
   destination      = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed.id}"
-}
 
-resource "google_logging_folder_sink" "audit_feed_without_children" {
-  for_each = toset(var.events_relay.audit_log_include_children ? [] : var.access_scope.folder_ids)
-
-  name             = "${local.prefix}audit-feed-folder-without-children-${each.key}"
-  folder           = each.key
-  filter           = local.audit_filter
-  include_children = false
-  destination      = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed.id}"
+  lifecycle {
+    replace_triggered_by = [terraform_data.audit_log_include_children]
+  }
 }
 
 resource "google_pubsub_topic_iam_member" "audit_feed_publisher_folder" {
@@ -76,11 +64,8 @@ resource "google_pubsub_topic_iam_member" "audit_feed_publisher_folder" {
   project = local.project_id
   topic   = google_pubsub_topic.audit_feed.id
   role    = "roles/pubsub.publisher"
-  member = (
-    var.events_relay.audit_log_include_children ?
-    google_logging_folder_sink.audit_feed_with_children[each.key].writer_identity :
-    google_logging_folder_sink.audit_feed_without_children[each.key].writer_identity
-  )
+  member  = google_logging_folder_sink.audit_feed[each.key].writer_identity
+
 }
 
 resource "google_logging_project_sink" "audit_feed" {
@@ -98,7 +83,7 @@ resource "google_pubsub_topic_iam_member" "audit_feed_publisher_project" {
   project = local.project_id
   topic   = google_pubsub_topic.audit_feed.id
   role    = "roles/pubsub.publisher"
-  member = google_logging_project_sink.audit_feed[each.key].writer_identity
+  member  = google_logging_project_sink.audit_feed[each.key].writer_identity
 }
 
 module "audit_relay" {
