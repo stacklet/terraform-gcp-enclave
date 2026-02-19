@@ -41,7 +41,7 @@ resource "google_pubsub_topic_iam_member" "audit_feed_publisher_org" {
   for_each = toset(var.access_scope.org_ids)
 
   project = local.project_id
-  topic   = google_pubsub_topic.audit_feed.name
+  topic   = google_pubsub_topic.audit_feed.id
   role    = "roles/pubsub.publisher"
   member = (
     var.events_relay.audit_log_include_children ?
@@ -74,7 +74,7 @@ resource "google_pubsub_topic_iam_member" "audit_feed_publisher_folder" {
   for_each = toset(var.access_scope.folder_ids)
 
   project = local.project_id
-  topic   = google_pubsub_topic.audit_feed.name
+  topic   = google_pubsub_topic.audit_feed.id
   role    = "roles/pubsub.publisher"
   member = (
     var.events_relay.audit_log_include_children ?
@@ -96,7 +96,7 @@ resource "google_pubsub_topic_iam_member" "audit_feed_publisher_project" {
   for_each = toset(var.access_scope.project_ids)
 
   project = local.project_id
-  topic   = google_pubsub_topic.audit_feed.name
+  topic   = google_pubsub_topic.audit_feed.id
   role    = "roles/pubsub.publisher"
   member = google_logging_project_sink.audit_feed[each.key].writer_identity
 }
