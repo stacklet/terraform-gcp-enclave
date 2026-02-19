@@ -1,3 +1,7 @@
+locals {
+  assets_org_excluded_folders_filter = join(", ", [for id in var.access_scope.excluded_folder_ids : "\"folders/${id}\""])
+}
+
 resource "google_pubsub_topic" "assets_feed" {
   name = "${local.prefix}assets-feed"
 
@@ -19,6 +23,16 @@ resource "google_cloud_asset_organization_feed" "org_feed" {
   feed_output_config {
     pubsub_destination {
       topic = google_pubsub_topic.assets_feed.id
+    }
+  }
+
+  # asset.ancestors contains the full ancestry chain, so this excludes assets
+  # in excluded folders and all their descendants.
+  dynamic "condition" {
+    for_each = length(var.access_scope.excluded_folder_ids) > 0 ? [1] : []
+    content {
+      expression = "!asset.ancestors.exists(a, a in [${local.assets_org_excluded_folders_filter}])"
+      title      = "Exclude specific folders"
     }
   }
 }

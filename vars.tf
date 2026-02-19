@@ -95,23 +95,23 @@ EOT
 
 variable "access_scope" {
   type = object({
-    org_ids           = optional(list(string), [])
-    folder_ids        = optional(list(string), [])
-    project_ids       = optional(list(string), [])
-    denied_folder_ids = optional(list(string), [])
+    org_ids             = optional(list(string), [])
+    folder_ids          = optional(list(string), [])
+    project_ids         = optional(list(string), [])
+    excluded_folder_ids = optional(list(string), [])
   })
   default = {
-    org_ids           = []
-    folder_ids        = []
-    project_ids       = []
-    denied_folder_ids = []
+    org_ids             = []
+    folder_ids          = []
+    project_ids         = []
+    excluded_folder_ids = []
   }
   description = <<EOT
 Scope where service account permissions should be granted:
   - org_ids: List of organization IDs.
   - folder_ids: List of folder IDs.
   - project_ids: List of project IDs.
-  - denied_folder_ids: List of folder IDs to explicitly deny access to.
+  - excluded_folder_ids: List of folder IDs to ignore even if parents are included.
 EOT
 }
 

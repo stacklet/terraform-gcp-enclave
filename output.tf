@@ -51,7 +51,7 @@ output "access_blob" {
   }))
 }
 
-output "old_access_blob" { # XXX matches access_blob from gcp-cost-setup, for testing
+output "legacy_access_blob" { # XXX matches access_blob from gcp-cost-setup, for testing
   value = base64encode(jsonencode({
     projectId           = local.project_id
     roundtripDigest     = var.roundtrip_digest

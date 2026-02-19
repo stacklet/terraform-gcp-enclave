@@ -70,23 +70,9 @@ locals {
     ]
   ])
 
-  denied_folder_bindings = flatten([
-    for sa in local.service_accounts : [
-      for role in sa.roles : [
-        for folder_id in var.access_scope.denied_folder_ids : {
-          key       = "${sa.name}|${role}|${folder_id}"
-          sa_email  = google_service_account.sa[sa.name].email
-          role      = role
-          folder_id = folder_id
-        }
-      ]
-    ]
-  ])
-
-  org_bindings_map           = { for binding in local.org_bindings : binding.key => binding }
-  folder_bindings_map        = { for binding in local.folder_bindings : binding.key => binding }
-  project_bindings_map       = { for binding in local.project_bindings : binding.key => binding }
-  denied_folder_bindings_map = { for binding in local.denied_folder_bindings : binding.key => binding }
+  org_bindings_map     = { for binding in local.org_bindings : binding.key => binding }
+  folder_bindings_map  = { for binding in local.folder_bindings : binding.key => binding }
+  project_bindings_map = { for binding in local.project_bindings : binding.key => binding }
 }
 
 resource "google_service_account" "sa" {
@@ -141,24 +127,4 @@ resource "google_project_iam_member" "sa_project_access" {
   project = each.value.project_id
   role    = each.value.role
   member  = "serviceAccount:${each.value.sa_email}"
-}
-
-# Deny service account access to specific folders
-resource "google_iam_deny_policy" "sa_deny_folder_access" {
-  for_each = local.denied_folder_bindings_map
-
-  parent = "cloudresourcemanager.googleapis.com/folders/${each.value.folder_id}"
-  name   = "${local.prefix}deny-${each.key}"
-
-  rules {
-    deny_rule {
-      denied_principals  = ["serviceAccount:${each.value.sa_email}"]
-      denied_permissions = [each.value.role]
-
-      denial_condition {
-        title      = "Deny access to folder ${each.value.folder_id}"
-        expression = "true"
-      }
-    }
-  }
 }
