@@ -34,23 +34,29 @@ output "cost_export_table_locations" {
   value       = local.cost_export_table_locations
 }
 
+output "relay_service_account_oauth_id" {
+  description = "OAuth ID for the the service account used for events relay"
+  value       = google_service_account.events_relay.unique_id
+}
+
 output "access_blob" {
   description = "All other outputs crammed into a single copy/pasteable value."
   value = base64encode(jsonencode({
-    projectId                = var.project.id
-    wifAudience              = local.wif_audience
-    serviceAccountsAccess    = local.service_accounts_access
-    costExportTablesLocation = local.cost_export_table_locations
-    roundtripDigest          = var.roundtrip_digest
+    costExportTablesLocation   = local.cost_export_table_locations
+    projectId                  = var.project.id
+    relayServiceAccountOAuthID = google_service_account.events_relay.unique_id
+    roundtripDigest            = var.roundtrip_digest
+    serviceAccountsAccess      = local.service_accounts_access
+    wifAudience                = local.wif_audience
   }))
 }
 
 output "old_access_blob" { # XXX matches access_blob from gcp-cost-setup, for testing
   value = base64encode(jsonencode({
-    projectId           = local.project_id,
-    tableLocations      = local.cost_export_table_locations,
+    projectId           = local.project_id
+    roundtripDigest     = var.roundtrip_digest
+    tableLocations      = local.cost_export_table_locations
     wifAudience         = local.wif_audience,
     wifImpersonationURL = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${google_service_account.sa["cost-export"].email}:generateAccessToken"
-    roundtripDigest     = var.roundtrip_digest,
   }))
 }
