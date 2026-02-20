@@ -1,5 +1,8 @@
 locals {
-  assets_org_excluded_folders_filter = join(", ", [for id in var.access_scope.excluded_folder_ids : "\"folders/${id}\""])
+  assets_org_excluded_folders_filter = {
+    for org_id, folder_ids in local.org_excluded_folder_ids :
+    org_id => join(", ", [for id in folder_ids : "\"folders/${id}\""])
+  }
 }
 
 resource "google_pubsub_topic" "assets_feed" {
@@ -11,7 +14,7 @@ resource "google_pubsub_topic" "assets_feed" {
 }
 
 resource "google_cloud_asset_organization_feed" "org_feed" {
-  for_each = toset(var.access_scope.org_ids)
+  for_each = local.whole_org_ids
 
   feed_id         = "${local.prefix}resource-feed-org-${each.key}"
   billing_project = local.project_id
@@ -29,16 +32,16 @@ resource "google_cloud_asset_organization_feed" "org_feed" {
   # asset.ancestors contains the full ancestry chain, so this excludes assets
   # in excluded folders and all their descendants.
   dynamic "condition" {
-    for_each = length(var.access_scope.excluded_folder_ids) > 0 ? [1] : []
+    for_each = length(local.org_excluded_folder_ids[each.key]) > 0 ? [1] : []
     content {
-      expression = "!asset.ancestors.exists(a, a in [${local.assets_org_excluded_folders_filter}])"
+      expression = "!asset.ancestors.exists(a, a in [${local.assets_org_excluded_folders_filter[each.key]}])"
       title      = "Exclude specific folders"
     }
   }
 }
 
 resource "google_cloud_asset_folder_feed" "folder_feed" {
-  for_each = toset(var.access_scope.folder_ids)
+  for_each = local.folder_ids
 
   feed_id         = "${local.prefix}resource-feed-folder-${each.key}"
   billing_project = local.project_id
@@ -55,7 +58,7 @@ resource "google_cloud_asset_folder_feed" "folder_feed" {
 }
 
 resource "google_cloud_asset_project_feed" "project_feed" {
-  for_each = toset(var.access_scope.project_ids)
+  for_each = local.project_ids
 
   feed_id         = "${local.prefix}resource-feed-project-${each.key}"
   billing_project = local.project_id

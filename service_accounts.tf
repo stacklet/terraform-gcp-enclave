@@ -34,7 +34,7 @@ locals {
   org_bindings = flatten([
     for sa in local.service_accounts : [
       for role in sa.roles : [
-        for org_id in var.access_scope.org_ids : {
+        for org_id in local.whole_org_ids : {
           key      = "${sa.name}|${role}|${org_id}"
           sa_email = google_service_account.sa[sa.name].email
           role     = role
@@ -47,7 +47,7 @@ locals {
   folder_bindings = flatten([
     for sa in local.service_accounts : [
       for role in sa.roles : [
-        for folder_id in var.access_scope.folder_ids : {
+        for folder_id in local.folder_ids : {
           key       = "${sa.name}|${role}|${folder_id}"
           sa_email  = google_service_account.sa[sa.name].email
           role      = role
@@ -60,7 +60,7 @@ locals {
   project_bindings = flatten([
     for sa in local.service_accounts : [
       for role in sa.roles : [
-        for project_id in var.access_scope.project_ids : {
+        for project_id in local.project_ids : {
           key        = "${sa.name}|${role}|${project_id}"
           sa_email   = google_service_account.sa[sa.name].email
           role       = role

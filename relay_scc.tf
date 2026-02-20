@@ -6,7 +6,7 @@ resource "google_pubsub_topic" "scc_findings_feed" {
 }
 
 resource "google_scc_v2_organization_notification_config" "org_feed" {
-  for_each = toset(var.access_scope.org_ids)
+  for_each = local.whole_org_ids
 
   config_id    = "${local.prefix}scc-feed-org-${each.key}"
   organization = each.key
@@ -20,7 +20,7 @@ resource "google_scc_v2_organization_notification_config" "org_feed" {
 }
 
 resource "google_scc_v2_folder_notification_config" "folder_feed" {
-  for_each = toset(var.access_scope.folder_ids)
+  for_each = local.folder_ids
 
   config_id    = "${local.prefix}scc-feed-folder-${each.key}"
   folder       = each.key
@@ -34,7 +34,7 @@ resource "google_scc_v2_folder_notification_config" "folder_feed" {
 }
 
 resource "google_scc_v2_project_notification_config" "project_feed" {
-  for_each = toset(var.access_scope.project_ids)
+  for_each = local.project_ids
 
   config_id    = "${local.prefix}scc-feed-project-${each.key}"
   project      = each.key

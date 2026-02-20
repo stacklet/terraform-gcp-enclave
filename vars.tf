@@ -93,26 +93,33 @@ EOT
   }
 }
 
-variable "access_scope" {
-  type = object({
-    org_ids             = optional(list(string), [])
+variable "organizations" {
+  type = list(object({
+    org_id              = string
     folder_ids          = optional(list(string), [])
     project_ids         = optional(list(string), [])
     excluded_folder_ids = optional(list(string), [])
-  })
-  default = {
-    org_ids             = []
-    folder_ids          = []
-    project_ids         = []
-    excluded_folder_ids = []
-  }
+  }))
   description = <<EOT
-Scope where service account permissions should be granted:
-  - org_ids: List of organization IDs.
-  - folder_ids: List of folder IDs.
-  - project_ids: List of project IDs.
-  - excluded_folder_ids: List of folder IDs to ignore even if parents are included.
+List of organization to onboard. For each one:
+  - org_id: The organization ID.
+  - folder_ids: Optional list of IDs for folders in the organization.
+  - project_ids: Optional list list of IDs for projects in the organization.
+  - excluded_folder_ids: Optional list of IDs for folders to ignore.
+
+If folder_ids/project_ids are provided for an organization, only specified
+elements will be included, otherwise the whole org would be onboarded.
+
+The excluded_folder_ids allows exclusions when the whole organization is onboarded.
 EOT
+
+  validation {
+    condition = alltrue([
+      for e in var.organizations :
+      length(e.excluded_folder_ids) == 0 || (length(e.project_ids) + length(e.folder_ids)) == 0
+    ])
+    error_message = "excluded_folder_ids can only be specified when a whole organization is onboarded (no folder_ids/project_ids)."
+  }
 }
 
 variable "cost_export_billing_tables" {

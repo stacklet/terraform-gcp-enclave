@@ -11,15 +11,14 @@ locals {
   # Note: project-level logs from projects within excluded folders and folders
   # inside excluded folders cannot be excluded this way, as their logName only
   # contains the project ID.
-  audit_org_excluded_folders_filter = join(
-    " OR ",
-    [for id in var.access_scope.excluded_folder_ids : "logName:\"folders/${id}/\""]
-  )
-  audit_org_filter = (
-    length(var.access_scope.excluded_folder_ids) == 0 ?
-    local.audit_filter :
-    "${local.audit_filter} AND NOT (${local.audit_org_excluded_folders_filter})"
-  )
+  audit_org_filter = {
+    for org_id, excluded_folders in local.org_excluded_folder_ids :
+    org_id => (
+      length(excluded_folders) == 0 ?
+      local.audit_filter :
+      "${local.audit_filter} AND NOT (${join(" OR ", [for id in excluded_folders : "logName:\"folders/${id}/\""])})"
+    )
+  }
 }
 
 resource "google_pubsub_topic" "audit_feed" {
@@ -38,11 +37,11 @@ resource "terraform_data" "audit_log_include_children" {
 }
 
 resource "google_logging_organization_sink" "audit_feed" {
-  for_each = toset(var.access_scope.org_ids)
+  for_each = local.whole_org_ids
 
   name             = "${local.prefix}audit-feed-org-${each.key}"
   org_id           = each.key
-  filter           = local.audit_org_filter
+  filter           = local.audit_org_filter[each.key]
   include_children = var.events_relay.audit_log_include_children
   destination      = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed.id}"
 
@@ -52,7 +51,7 @@ resource "google_logging_organization_sink" "audit_feed" {
 }
 
 resource "google_pubsub_topic_iam_member" "audit_feed_publisher_org" {
-  for_each = toset(var.access_scope.org_ids)
+  for_each = local.whole_org_ids
 
   project = local.project_id
   topic   = google_pubsub_topic.audit_feed.id
@@ -61,7 +60,7 @@ resource "google_pubsub_topic_iam_member" "audit_feed_publisher_org" {
 }
 
 resource "google_logging_folder_sink" "audit_feed" {
-  for_each = toset(var.access_scope.folder_ids)
+  for_each = local.folder_ids
 
   name             = "${local.prefix}audit-feed-folder-${each.key}"
   folder           = each.key
@@ -75,7 +74,7 @@ resource "google_logging_folder_sink" "audit_feed" {
 }
 
 resource "google_pubsub_topic_iam_member" "audit_feed_publisher_folder" {
-  for_each = toset(var.access_scope.folder_ids)
+  for_each = local.folder_ids
 
   project = local.project_id
   topic   = google_pubsub_topic.audit_feed.id
@@ -85,7 +84,7 @@ resource "google_pubsub_topic_iam_member" "audit_feed_publisher_folder" {
 }
 
 resource "google_logging_project_sink" "audit_feed" {
-  for_each = toset(var.access_scope.project_ids)
+  for_each = local.project_ids
 
   name        = "${local.prefix}audit-feed-project-${each.key}"
   project     = each.key
@@ -94,7 +93,7 @@ resource "google_logging_project_sink" "audit_feed" {
 }
 
 resource "google_pubsub_topic_iam_member" "audit_feed_publisher_project" {
-  for_each = toset(var.access_scope.project_ids)
+  for_each = local.project_ids
 
   project = local.project_id
   topic   = google_pubsub_topic.audit_feed.id
