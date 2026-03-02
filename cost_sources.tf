@@ -19,8 +19,6 @@ resource "google_bigquery_table_iam_member" "sa_bq_tables" {
 
 
 resource "google_project_iam_member" "cost_query_job_user" {
-  count = length(var.cost_sources) > 0 ? 1 : 0
-
   project = local.project_id
   role    = "roles/bigquery.jobUser"
   member  = google_service_account.sa["stk-cost-query"].member

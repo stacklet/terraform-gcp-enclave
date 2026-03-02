@@ -11,11 +11,11 @@ locals {
         roles = var.read_only_roles
       },
     ],
-    length(var.cost_sources) > 0 ? [{
+    [{
       name  = "stk-cost-query"
       trust = [var.stacklet_aws.cost_query_role_name]
       roles = []
-    }] : [],
+    }],
     [
       for ctx in var.execution_security_contexts : {
         name  = ctx.name
