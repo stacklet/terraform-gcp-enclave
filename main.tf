@@ -4,16 +4,19 @@ locals {
 
   prefix = var.resource_prefix == "" ? "" : "${var.resource_prefix}-"
 
-  project_id     = var.project.create ? google_project.integration[0].project_id : var.project.id
-  project_number = var.project.create ? google_project.integration[0].number : data.google_project.integration[0].number
+  project_id = var.project.create ? google_project.integration[0].project_id : var.project.id
+  project_number = (
+    var.project.create
+    ? google_project.integration[0].number
+    : data.google_project.integration[0].number
+  )
 
   whole_org_ids = toset(compact([
     for e in var.organizations :
     (length(e.folder_ids) + length(e.project_ids)) == 0 ? e.org_id : null
   ]))
-  folder_ids              = toset(flatten([for e in var.organizations : e.folder_ids]))
-  project_ids             = toset(flatten([for e in var.organizations : e.project_ids]))
-  org_excluded_folder_ids = { for e in var.organizations : e.org_id => e.excluded_folder_ids }
+  folder_ids  = toset(flatten([for e in var.organizations : e.folder_ids]))
+  project_ids = toset(flatten([for e in var.organizations : e.project_ids]))
 }
 
 resource "google_project" "integration" {
