@@ -2,32 +2,40 @@ locals {
   service_accounts = concat(
     [
       {
-        name = "readonly"
-        assumable_from = [
-          var.stacklet_aws.collector_role,
-          var.stacklet_aws.execution_role,
-          var.stacklet_aws.platform_role,
+        name = "stk-read-only"
+        trust = [
+          var.stacklet_aws.assetdb_role_name,
+          var.stacklet_aws.execution_role_name,
+          var.stacklet_aws.platform_role_name,
         ]
-        roles = [
-          "roles/browser",
-          "roles/cloudasset.viewer",
-        ]
-      },
-      {
-        name = "cost-export"
-        assumable_from = [
-          var.stacklet_aws.cost_export_role,
-        ]
-        roles = ["roles/bigquery.jobUser"]
+        roles = var.read_only_roles
       },
     ],
-    var.extra_service_accounts,
+    [{
+      name  = "stk-cost-query"
+      trust = [var.stacklet_aws.cost_query_role_name]
+      roles = []
+    }],
+    [
+      for ctx in var.execution_security_contexts : {
+        name  = ctx.name
+        trust = [var.stacklet_aws.execution_role_name]
+        roles = concat(var.read_only_roles, ctx.extra_roles)
+      }
+    ],
   )
+
+  aws_principal_prefix = join("", [
+    "principalSet://iam.googleapis.com/",
+    google_iam_workload_identity_pool.wif_access.name,
+    "/attribute.aws_role/arn:aws:sts::",
+    var.stacklet_aws.account_id,
+    ":assumed-role/",
+  ])
 
   sa_bindings = {
     for sa in local.service_accounts : sa.name => [
-      for role in sa.assumable_from :
-      "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.wif_access.name}/attribute.aws_role/arn:aws:sts::${var.stacklet_aws.account_id}:assumed-role/${role}"
+      for role_name in sa.trust : "${local.aws_principal_prefix}${role_name}"
     ]
   }
 

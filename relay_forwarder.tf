@@ -27,7 +27,7 @@ data "archive_file" "events_relay_function_source" {
 }
 
 resource "google_storage_bucket" "events_relay_function_source_bucket" {
-  name                        = "${var.resource_prefix}${local.project_id}-gcf-source"
+  name                        = "${local.prefix}${local.project_id}-gcf-source"
   project                     = local.project_id
   location                    = var.bucket_location
   uniform_bucket_level_access = true
