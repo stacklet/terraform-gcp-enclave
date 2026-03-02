@@ -72,64 +72,70 @@ EOT
   }
 }
 
-variable "extra_service_accounts" {
+variable "execution_security_contexts" {
   type = list(object({
-    name           = string
-    assumable_from = list(string)
-    roles          = list(string)
+    name        = string
+    extra_roles = list(string)
   }))
   default     = []
   description = <<EOT
-Additional service accounts to create. For each one:
-  - name: The service account name.
-  - assumable_from: List of names (possibly with path prefix) for AWS roles that can assume the role via WIF.
-  - roles: GCP roles to be provided to the service account.
+Additional execution security contexts. For each one:
+  - name: The security context name (used as the service account identifier).
+  - extra_roles: GCP roles granted in addition to the baseline read_only_roles.
 EOT
 
   validation {
     # max account id length is 30, leave room for prefix and dash
-    condition     = alltrue([for sa in var.extra_service_accounts : length(sa.name) <= 15])
+    condition     = alltrue([for ctx in var.execution_security_contexts : length(ctx.name) <= 15])
     error_message = "name can be no longer than 15 characters."
   }
+
+  validation {
+    condition     = alltrue([for ctx in var.execution_security_contexts : !startswith(ctx.name, "stk-")])
+    error_message = "name cannot start with 'stk-' (reserved for built-in security contexts)."
+  }
 }
+
+variable "read_only_roles" {
+  type        = list(string)
+  default     = ["roles/browser", "roles/cloudasset.viewer"]
+  description = "GCP roles granted to the stk-read-only service account and as a baseline to all execution contexts."
+
+  validation {
+    condition     = length(var.read_only_roles) > 0
+    error_message = "read_only_roles must not be empty."
+  }
+}
+
 
 variable "organizations" {
   type = list(object({
-    org_id              = string
-    folder_ids          = optional(list(string), [])
-    project_ids         = optional(list(string), [])
-    excluded_folder_ids = optional(list(string), [])
+    org_id      = string
+    folder_ids  = optional(list(string), [])
+    project_ids = optional(list(string), [])
   }))
   description = <<EOT
-List of organization to onboard. For each one:
+Organizations to onboard. For each one:
   - org_id: The organization ID.
-  - folder_ids: Optional list of IDs for folders in the organization.
-  - project_ids: Optional list list of IDs for projects in the organization.
-  - excluded_folder_ids: Optional list of IDs for folders to ignore.
+  - folder_ids: Optional list of folder IDs; if set (with or without project_ids), only
+    the specified folders and projects are onboarded rather than the whole org.
+  - project_ids: Optional list of project IDs; see folder_ids.
 
-If folder_ids/project_ids are provided for an organization, only specified
-elements will be included, otherwise the whole org would be onboarded.
-
-The excluded_folder_ids allows exclusions when the whole organization is onboarded.
+An empty list is valid — the identity and relay infrastructure will still be deployed,
+which is useful when setting up access ahead of time before organizations are added.
 EOT
-
-  validation {
-    condition = alltrue([
-      for e in var.organizations :
-      length(e.excluded_folder_ids) == 0 || (length(e.project_ids) + length(e.folder_ids)) == 0
-    ])
-    error_message = "excluded_folder_ids can only be specified when a whole organization is onboarded (no folder_ids/project_ids)."
-  }
 }
 
-variable "cost_export_billing_tables" {
-  type        = list(string)
+variable "cost_sources" {
+  type = list(object({
+    billing_table = string
+  }))
   default     = []
-  description = "Billing cost export tables in '<project_id>.<dataset_id>.<table_id>' format."
+  description = "Cost sources, each identified by a billing table in '<project_id>.<dataset_id>.<table_id>' format."
 
   validation {
-    condition     = alltrue([for t in var.cost_export_billing_tables : length(split(".", t)) == 3])
-    error_message = "All tables must be in the form '<project_id>.<dataset_id>.<table_id>'."
+    condition     = alltrue([for s in var.cost_sources : length(split(".", s.billing_table)) == 3])
+    error_message = "billing_table must be in the form '<project_id>.<dataset_id>.<table_id>'."
   }
 }
 
@@ -242,24 +248,23 @@ EOT
 
 variable "stacklet_aws" {
   type = object({
-    account_id       = string
-    collector_role   = string
-    execution_role   = string
-    platform_role    = string
-    cost_export_role = string
+    account_id           = string
+    assetdb_role_name    = string
+    execution_role_name  = string
+    platform_role_name   = string
+    cost_query_role_name = string
   })
   description = <<EOT
 Details of the Stacklet deployment to integrate with in AWS (Provided by Stacklet).
   - account_id: The AWS account for the deployment.
-  - collector_role: Name of the role used by account discovery.
-  - execution_role: Name of the role used by Execution.
-  - platform_role: Name of the role used by Platform.
-  - cost_export_role: Name of the role used for billing cost export.
+  - assetdb_role_name: Name of the role used by AssetDB.
+  - execution_role_name: Name of the role used by Execution.
+  - platform_role_name: Name of the role used by Platform.
+  - cost_query_role_name: Name of the role used for cost source queries.
 EOT
 }
 
 variable "roundtrip_digest" {
   type        = string
-  default     = null
   description = "Token used by the Stacklet Platform to detect mismatch between customerConfig and accessConfig."
 }

@@ -4,21 +4,6 @@ locals {
   # This filter ensures that only logs related to user-initiated API calls are
   # forwarded to the Pub/Sub topic.
   audit_filter = "logName:\"cloudaudit.googleapis.com%2Factivity\""
-
-  # For org sinks, extend the base filter to exclude logs scoped directly to
-  # excluded folders (e.g. folder-level IAM changes).
-  #
-  # Note: project-level logs from projects within excluded folders and folders
-  # inside excluded folders cannot be excluded this way, as their logName only
-  # contains the project ID.
-  audit_org_filter = {
-    for org_id, excluded_folders in local.org_excluded_folder_ids :
-    org_id => (
-      length(excluded_folders) == 0 ?
-      local.audit_filter :
-      "${local.audit_filter} AND NOT (${join(" OR ", [for id in excluded_folders : "logName:\"folders/${id}/\""])})"
-    )
-  }
 }
 
 resource "google_pubsub_topic" "audit_feed" {
@@ -41,7 +26,7 @@ resource "google_logging_organization_sink" "audit_feed" {
 
   name             = "${local.prefix}audit-feed-org-${each.key}"
   org_id           = each.key
-  filter           = local.audit_org_filter[each.key]
+  filter           = local.audit_filter
   include_children = var.events_relay.audit_log_include_children
   destination      = "pubsub.googleapis.com/${google_pubsub_topic.audit_feed.id}"
 
