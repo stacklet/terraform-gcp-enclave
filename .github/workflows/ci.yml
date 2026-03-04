@@ -40,6 +40,28 @@ jobs:
         run: |
           just lint-tf
 
+  lint-go:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set tool versions
+        uses: wistia/parse-tool-versions@32f568a4ffd4bfa7720ebf93f171597d1ebc979a # v2.1.1
+        with:
+          postfix: _TOOL_VERSION
+
+      - name: Setup Go
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: ${{ env.GOLANG_TOOL_VERSION }}
+
+      - name: Lint go files
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        with:
+          version: ${{ env.GOLANGCI_LINT_TOOL_VERSION }}
+          working-directory: relay_forwarder
+
   lint-docs:
     runs-on: ubuntu-latest
     steps:
@@ -50,3 +72,29 @@ jobs:
         uses: terraform-docs/gh-actions@v1.4.1
         with:
           fail-on-diff: true
+
+  test-go:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Tool versions
+        uses: wistia/parse-tool-versions@32f568a4ffd4bfa7720ebf93f171597d1ebc979a # v2.1.1
+        with:
+          postfix: _TOOL_VERSION
+
+      - name: Setup Just
+        uses: extractions/setup-crate@4993624604c307fbca528d28a3c8b60fa5ecc859 # v1.4.0
+        with:
+          repo: casey/just
+          version: ${{ env.JUST_TOOL_VERSION }}
+
+      - name: Setup Go
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+        with:
+          go-version: ${{ env.GOLANG_TOOL_VERSION }}
+
+      - name: Test
+        run: |
+          just test
