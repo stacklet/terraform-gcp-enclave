@@ -38,10 +38,6 @@ variable "debug" {
   type = bool
 }
 
-variable "cpu" {
-  type = string
-}
-
 variable "memory" {
   type = string
 }

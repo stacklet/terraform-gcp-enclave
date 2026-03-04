@@ -14,7 +14,7 @@ resource "google_cloud_asset_organization_feed" "org_feed" {
   org_id          = each.key
   content_type    = "RESOURCE"
 
-  asset_types = var.events_relay.asset_types
+  asset_types = local.asset_types
 
   feed_output_config {
     pubsub_destination {
@@ -31,7 +31,7 @@ resource "google_cloud_asset_folder_feed" "folder_feed" {
   folder          = each.key
   content_type    = "RESOURCE"
 
-  asset_types = var.events_relay.asset_types
+  asset_types = local.asset_types
 
   feed_output_config {
     pubsub_destination {
@@ -48,7 +48,7 @@ resource "google_cloud_asset_project_feed" "project_feed" {
   project         = each.key
   content_type    = "RESOURCE"
 
-  asset_types = var.events_relay.asset_types
+  asset_types = local.asset_types
 
   feed_output_config {
     pubsub_destination {
@@ -66,16 +66,15 @@ module "assets_relay" {
   pubsub_topic_id   = google_pubsub_topic.assets_feed.id
 
   project               = local.project_id
-  location              = var.location
+  location              = var.infrastructure.resource_location
   source_bucket         = google_storage_bucket.events_relay_function_source_bucket.name
   source_object         = google_storage_bucket_object.events_relay_function_source.name
   source_sha            = terraform_data.events_relay_function_source_sha.output
-  aws_bus_arn           = var.events_relay.aws_bus_arn
-  aws_role_arn          = var.events_relay.aws_role_arn
-  debug                 = var.events_relay.function.debug
-  cpu                   = var.events_relay.function.cpu
-  memory                = var.events_relay.function.memory
-  event_max_age_s       = var.events_relay.event_max_age_s
+  aws_bus_arn           = var.integration_surface.aws_relay.bus_arn
+  aws_role_arn          = var.integration_surface.aws_relay.role_arn
+  debug                 = var.advanced.debug
+  memory                = var.advanced.memory
+  event_max_age_s       = var.advanced.max_age_s
   service_account_email = google_service_account.events_relay.email
 
   depends_on = [google_project_service.service["cloudfunctions"]]

@@ -21,7 +21,10 @@ resource "google_cloudfunctions2_function" "relay" {
   }
 
   service_config {
-    available_cpu    = var.cpu
+    # cpu=1 is hardcoded: the relay is purely I/O-bound (waiting on EventBridge),
+    # so more CPU buys nothing. Less than 1 disables concurrency in Cloud Run,
+    # serialising all invocations — exactly wrong for a relay under load.
+    available_cpu    = "1"
     available_memory = var.memory
 
     environment_variables = {

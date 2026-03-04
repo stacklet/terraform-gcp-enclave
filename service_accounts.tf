@@ -4,23 +4,23 @@ locals {
       {
         name = "stk-read-only"
         trust = [
-          var.stacklet_aws.assetdb_role_name,
-          var.stacklet_aws.execution_role_name,
-          var.stacklet_aws.platform_role_name,
+          var.integration_surface.trust_aws.assetdb_role_name,
+          var.integration_surface.trust_aws.execution_role_name,
+          var.integration_surface.trust_aws.platform_role_name,
         ]
-        roles = var.read_only_roles
+        roles = local.read_only_roles
       },
     ],
     [{
       name  = "stk-cost-query"
-      trust = [var.stacklet_aws.cost_query_role_name]
+      trust = [var.integration_surface.trust_aws.cost_query_role_name]
       roles = []
     }],
     [
-      for ctx in var.execution_security_contexts : {
+      for ctx in var.security_contexts : {
         name  = ctx.name
-        trust = [var.stacklet_aws.execution_role_name]
-        roles = concat(var.read_only_roles, ctx.extra_roles)
+        trust = [var.integration_surface.trust_aws.execution_role_name]
+        roles = concat(local.read_only_roles, ctx.extra_roles)
       }
     ],
   )
@@ -29,7 +29,7 @@ locals {
     "principalSet://iam.googleapis.com/",
     google_iam_workload_identity_pool.wif_access.name,
     "/attribute.aws_role/arn:aws:sts::",
-    var.stacklet_aws.account_id,
+    var.integration_surface.trust_aws.account_id,
     ":assumed-role/",
   ])
 
