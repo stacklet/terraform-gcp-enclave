@@ -212,6 +212,7 @@ variable "events_relay" {
     ])
     audit_log_include_children = optional(bool, false)
     security_findings_filter   = optional(string, "state = \"ACTIVE\"")
+    event_discard_age_s        = optional(number, 3600)
     function = optional(object({
       debug           = optional(bool, false)
       max_concurrency = optional(number, 80)
@@ -233,6 +234,7 @@ Configuration for GCP events relay to Stacklet.
   - asset_types: The asset types that the cloud asset inventory feed provides.
   - audit_log_include_children: Whether audit log sinks include logs from child resources (folders/projects).
   - security_findings_filter: Filter to apply as streaming config for the security command center findings. By default all active findings are forwarded.
+  - event_discard_age_s: Events older than this many seconds are silently dropped before forwarding. Default 3600 (1 hour).
   - function: Relay function options:
     - debug: Whether to enable debug log.
     - max_concurrency: Maximum concurrency for the Cloud function. Higher values increase throughput but require more CPU.

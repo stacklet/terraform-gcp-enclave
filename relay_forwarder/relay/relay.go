@@ -46,32 +46,44 @@ type EBPutter interface {
 	PutEvents(ctx context.Context, params *eventbridge.PutEventsInput, optFns ...func(*eventbridge.Options)) (*eventbridge.PutEventsOutput, error)
 }
 
-// Relay forwards events to AWS EventBridge.
-type Relay struct {
-	clientCh   <-chan EBPutter
-	timeout    time.Duration
-	busName    string
-	detailType string
+// Config holds the configuration for a Relay.
+type Config struct {
+	Putters    <-chan EBPutter
+	PutterWait time.Duration // how long Forward waits for a putter before dropping
+	DiscardAge time.Duration // if > 0, events older than this are silently dropped
+	BusName    string
+	DetailType string
 }
 
-// New creates a Relay that draws EventBridge clients from clientCh.
-func New(clientCh <-chan EBPutter, timeout time.Duration, busName, detailType string) *Relay {
-	return &Relay{clientCh: clientCh, timeout: timeout, busName: busName, detailType: detailType}
+// Relay forwards events to AWS EventBridge.
+type Relay struct {
+	cfg Config
+}
+
+// New creates a Relay from cfg.
+func New(cfg Config) *Relay {
+	return &Relay{cfg: cfg}
 }
 
 // Forward sends ev to EventBridge. It returns ErrSkip if the event should be
-// silently ack'd (backoff in progress, context cancelled, permanent EB failure).
+// silently ack'd (backoff in progress, context cancelled, stale event, permanent EB failure).
 func (r *Relay) Forward(ctx context.Context, ev Event) error {
-	t := time.NewTimer(r.timeout)
+	if r.cfg.DiscardAge > 0 {
+		if age := time.Since(ev.Time); age > r.cfg.DiscardAge {
+			slog.Info("Dropping stale event", "age", age.Round(time.Second))
+			return ErrSkip
+		}
+	}
+	t := time.NewTimer(r.cfg.PutterWait)
 	defer t.Stop()
 	select {
-	case eb := <-r.clientCh:
+	case eb := <-r.cfg.Putters:
 		if eb != nil {
 			return r.send(ctx, eb, ev)
 		}
 		slog.Debug("Dropping event; credential backoff in progress")
 	case <-t.C:
-		slog.Warn("Client not ready; dropping event", "timeout", r.timeout)
+		slog.Warn("Putter not ready; dropping event", "wait", r.cfg.PutterWait)
 	case <-ctx.Done():
 		slog.Warn("Context done before client ready", "err", ctx.Err())
 	}
@@ -83,9 +95,9 @@ func (r *Relay) send(ctx context.Context, eb EBPutter, ev Event) error {
 		Entries: []ebtypes.PutEventsRequestEntry{{
 			Time:         &ev.Time,
 			Source:       aws.String("GCP Relay"),
-			DetailType:   aws.String(r.detailType),
+			DetailType:   aws.String(r.cfg.DetailType),
 			Detail:       aws.String(string(ev.Detail)),
-			EventBusName: aws.String(r.busName),
+			EventBusName: aws.String(r.cfg.BusName),
 		}},
 	})
 	if err != nil {

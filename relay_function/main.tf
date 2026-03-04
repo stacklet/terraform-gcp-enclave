@@ -29,10 +29,11 @@ resource "google_cloudfunctions2_function" "relay" {
     available_memory                 = var.memory
 
     environment_variables = {
-      AWS_EVENT_BUS     = var.aws_bus_arn
-      AWS_ROLE          = var.aws_role_arn
-      LOG_DEBUG         = var.debug ? "DEBUG" : ""
-      RELAY_DETAIL_TYPE = var.relay_detail_type
+      RELAY_BUS_ARN       = var.aws_bus_arn
+      RELAY_DEBUG         = var.debug ? "nonempty" : ""
+      RELAY_DISCARD_AGE_S = tostring(var.event_discard_age_s)
+      RELAY_DETAIL_TYPE   = var.relay_detail_type
+      RELAY_ROLE_ARN      = var.aws_role_arn
     }
     ingress_settings      = "ALLOW_INTERNAL_ONLY"
     service_account_email = var.service_account_email

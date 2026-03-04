@@ -61,3 +61,7 @@ variable "relay_detail_type" {
 variable "pubsub_topic_id" {
   type = string
 }
+
+variable "event_discard_age_s" {
+  type = number
+}

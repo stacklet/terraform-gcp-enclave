@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,19 +21,48 @@ import (
 var _relay *relay.Relay
 
 func init() {
-	if os.Getenv("LOG_DEBUG") != "" {
+	if os.Getenv("RELAY_DEBUG") != "" {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
-	busARN := os.Getenv("AWS_EVENT_BUS")
+	discardAgeSecs, err := strconv.Atoi(os.Getenv("RELAY_DISCARD_AGE_S"))
+	if err != nil || discardAgeSecs <= 0 {
+		log.Fatalf("RELAY_DISCARD_AGE_S must be a positive integer, got %q", os.Getenv("RELAY_DISCARD_AGE_S"))
+	}
+	discardAge := time.Duration(discardAgeSecs) * time.Second
+
+	busARN := os.Getenv("RELAY_BUS_ARN")
 	// ARN format: arn:aws:events:<region>:<account>:event-bus/<name>
-	parts := strings.SplitN(busARN, ":", 6)
-	region := parts[3]
-	busName := strings.SplitN(parts[5], "/", 2)[1]
+	arnParts := strings.SplitN(busARN, ":", 6)
+	if len(arnParts) != 6 {
+		log.Fatalf("RELAY_BUS_ARN must be a valid ARN, got %q", busARN)
+	}
+	region := arnParts[3]
+	busParts := strings.SplitN(arnParts[5], "/", 2)
+	if len(busParts) != 2 {
+		log.Fatalf("RELAY_BUS_ARN must be a valid ARN, got %q", busARN)
+	}
+	busName := busParts[1]
+
+	roleARN := os.Getenv("RELAY_ROLE_ARN")
+	if roleARN == "" {
+		log.Fatal("RELAY_ROLE_ARN is required")
+	}
+
+	detailType := os.Getenv("RELAY_DETAIL_TYPE")
+	if detailType == "" {
+		log.Fatal("RELAY_DETAIL_TYPE is required")
+	}
 
 	ctx := context.Background()
-	clients := relay.Serve(ctx, relay.CredLoop(ctx, relay.DefaultCredConfig, relay.GCPSTSRefresher(region, os.Getenv("AWS_ROLE"))))
-	_relay = relay.New(clients, 30*time.Second, busName, os.Getenv("RELAY_DETAIL_TYPE"))
+	clients := relay.Serve(ctx, relay.CredLoop(ctx, relay.DefaultCredConfig, relay.GCPSTSRefresher(region, roleARN)))
+	_relay = relay.New(relay.Config{
+		Putters:    clients,
+		PutterWait: 30 * time.Second,
+		DiscardAge: discardAge,
+		BusName:    busName,
+		DetailType: detailType,
+	})
 	functions.CloudEvent("ForwardEvent", forwardEvent)
 }
 

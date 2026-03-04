@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"relay-forwarder/relay"
+	"stacklet.io/relay_forwarder/relay"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
@@ -49,13 +49,46 @@ func makeClientChan(t *testing.T, eb relay.EBPutter) <-chan relay.EBPutter {
 	return ch
 }
 
+func baseConfig(t *testing.T, eb relay.EBPutter) relay.Config {
+	return relay.Config{Putters: makeClientChan(t, eb), PutterWait: time.Second, BusName: "test-bus", DetailType: "GCP Test"}
+}
+
 func makeRelay(t *testing.T, eb relay.EBPutter) *relay.Relay {
-	return relay.New(makeClientChan(t, eb), time.Second, "test-bus", "GCP Test")
+	return relay.New(baseConfig(t, eb))
 }
 
 func makeEvent(payload map[string]any, t time.Time) relay.Event {
 	detail, _ := json.Marshal(payload)
 	return relay.Event{Detail: detail, Time: t}
+}
+
+// ---- Relay.Forward / discard age --------------------------------------------
+
+func TestRelayDiscardsStaleEvent(t *testing.T) {
+	eb := &mockEB{}
+	cfg := baseConfig(t, eb)
+	cfg.DiscardAge = time.Hour
+	stale := makeEvent(map[string]any{}, time.Now().Add(-61*time.Minute))
+	err := relay.New(cfg).Forward(context.Background(), stale)
+	if !errors.Is(err, relay.ErrSkip) {
+		t.Fatalf("want ErrSkip for stale event, got %v", err)
+	}
+	if eb.got != nil {
+		t.Error("PutEvents should not have been called for stale event")
+	}
+}
+
+func TestRelayForwardsFreshEvent(t *testing.T) {
+	eb := &mockEB{resp: &eventbridge.PutEventsOutput{Entries: []ebtypes.PutEventsResultEntry{{}}}}
+	cfg := baseConfig(t, eb)
+	cfg.DiscardAge = time.Hour
+	fresh := makeEvent(map[string]any{}, time.Now().Add(-59*time.Minute))
+	if err := relay.New(cfg).Forward(context.Background(), fresh); err != nil {
+		t.Fatalf("unexpected error for fresh event: %v", err)
+	}
+	if eb.got == nil {
+		t.Error("PutEvents should have been called for fresh event")
+	}
 }
 
 // ---- Relay.Forward behaviour ------------------------------------------------
@@ -112,7 +145,6 @@ func TestRelayPermanentEntryFailureReturnsSkip(t *testing.T) {
 
 func TestRelayTransientEntryFailureIsRetried(t *testing.T) {
 	for _, code := range []string{"InternalFailure", "ThrottlingException"} {
-		code := code
 		t.Run(code, func(t *testing.T) {
 			msg := "transient"
 			eb := &mockEB{resp: &eventbridge.PutEventsOutput{
@@ -144,7 +176,7 @@ func TestRelayNonAuthErrorIsReturned(t *testing.T) {
 // ---- Relay.Forward / client availability ------------------------------------
 
 func TestRelayForwardReturnsSkipOnColdStartTimeout(t *testing.T) {
-	r := relay.New(make(chan relay.EBPutter), 0, "b", "dt")
+	r := relay.New(relay.Config{Putters: make(chan relay.EBPutter), PutterWait: time.Millisecond, BusName: "b", DetailType: "dt"})
 	err := r.Forward(context.Background(), relay.Event{})
 	if !errors.Is(err, relay.ErrSkip) {
 		t.Fatalf("want ErrSkip on timeout, got %v", err)
@@ -152,8 +184,7 @@ func TestRelayForwardReturnsSkipOnColdStartTimeout(t *testing.T) {
 }
 
 func TestRelayForwardReturnsSkipWithNilClient(t *testing.T) {
-	r := relay.New(makeClientChan(t, nil), time.Second, "b", "dt")
-	err := r.Forward(context.Background(), relay.Event{})
+	err := makeRelay(t, nil).Forward(context.Background(), relay.Event{})
 	if !errors.Is(err, relay.ErrSkip) {
 		t.Fatalf("want ErrSkip, got %v", err)
 	}
@@ -162,7 +193,7 @@ func TestRelayForwardReturnsSkipWithNilClient(t *testing.T) {
 func TestRelayForwardReturnsSkipOnContextCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // already cancelled
-	r := relay.New(make(chan relay.EBPutter), time.Minute, "b", "dt")
+	r := relay.New(relay.Config{Putters: make(chan relay.EBPutter), PutterWait: time.Minute, BusName: "b", DetailType: "dt"})
 	err := r.Forward(ctx, relay.Event{})
 	if !errors.Is(err, relay.ErrSkip) {
 		t.Fatalf("want ErrSkip on cancelled context, got %v", err)

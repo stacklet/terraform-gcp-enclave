@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"relay-forwarder/relay"
+	"stacklet.io/relay_forwarder/relay"
 )
 
 var fastCfg = relay.CredConfig{MinBackoff: 10 * time.Millisecond, MaxBackoff: 50 * time.Millisecond, RefreshTimeout: time.Second}

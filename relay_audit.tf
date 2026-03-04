@@ -105,6 +105,7 @@ module "audit_relay" {
   max_concurrency       = var.events_relay.function.max_concurrency
   cpu                   = var.events_relay.function.cpu
   memory                = var.events_relay.function.memory
+  event_discard_age_s   = var.events_relay.event_discard_age_s
   service_account_email = google_service_account.events_relay.email
 
   depends_on = [google_project_service.service["cloudfunctions"]]
