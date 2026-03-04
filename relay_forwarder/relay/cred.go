@@ -81,7 +81,7 @@ func CredLoop(ctx context.Context, cfg CredConfig, refresher ClientRefresher) <-
 			var af *AuthFailure
 			var sleep time.Duration
 			if errors.As(err, &af) {
-				slog.Info("Auth failure, backing off", "backoff", cfg.MaxBackoff, "err", err)
+				slog.Warn("Auth failure, backing off", "backoff", cfg.MaxBackoff, "err", err)
 				select {
 				case out <- nil:
 				case <-ctx.Done():
@@ -90,7 +90,7 @@ func CredLoop(ctx context.Context, cfg CredConfig, refresher ClientRefresher) <-
 				sleep = cfg.MaxBackoff
 				backoff = cfg.MinBackoff
 			} else if err != nil {
-				slog.Error("Credential refresh failed", "backoff", backoff, "err", err)
+				slog.Warn("Credential refresh failed", "backoff", backoff, "err", err)
 				sleep = backoff
 				backoff = min(backoff*2, cfg.MaxBackoff)
 			} else {

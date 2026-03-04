@@ -21,19 +21,15 @@ resource "google_cloudfunctions2_function" "relay" {
   }
 
   service_config {
-    # explicitly set concurrency and cpu values.  When CPU < 1, concurrency
-    # value is set to 1 and can cause 429 errors when large numbers of
-    # concurrent requests come in
-    max_instance_request_concurrency = var.max_concurrency
-    available_cpu                    = var.cpu
-    available_memory                 = var.memory
+    available_cpu    = var.cpu
+    available_memory = var.memory
 
     environment_variables = {
-      RELAY_BUS_ARN       = var.aws_bus_arn
-      RELAY_DEBUG         = var.debug ? "nonempty" : ""
-      RELAY_DISCARD_AGE_S = tostring(var.event_discard_age_s)
-      RELAY_DETAIL_TYPE   = var.relay_detail_type
-      RELAY_ROLE_ARN      = var.aws_role_arn
+      RELAY_BUS_ARN     = var.aws_bus_arn
+      RELAY_DEBUG       = var.debug ? "nonempty" : ""
+      RELAY_MAX_AGE_S   = tostring(var.event_max_age_s)
+      RELAY_DETAIL_TYPE = var.relay_detail_type
+      RELAY_ROLE_ARN    = var.aws_role_arn
     }
     ingress_settings      = "ALLOW_INTERNAL_ONLY"
     service_account_email = var.service_account_email

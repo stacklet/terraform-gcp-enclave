@@ -3,5 +3,3 @@
 *.tfvars
 .terraform.lock.hcl
 /relay-forwarder-function.zip
-__pycache__/
-.venv/

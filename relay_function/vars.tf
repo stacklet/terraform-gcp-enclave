@@ -38,10 +38,6 @@ variable "debug" {
   type = bool
 }
 
-variable "max_concurrency" {
-  type = number
-}
-
 variable "cpu" {
   type = string
 }
@@ -62,6 +58,6 @@ variable "pubsub_topic_id" {
   type = string
 }
 
-variable "event_discard_age_s" {
+variable "event_max_age_s" {
   type = number
 }

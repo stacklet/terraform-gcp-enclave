@@ -67,7 +67,7 @@ func makeEvent(payload map[string]any, t time.Time) relay.Event {
 func TestRelayDiscardsStaleEvent(t *testing.T) {
 	eb := &mockEB{}
 	cfg := baseConfig(t, eb)
-	cfg.DiscardAge = time.Hour
+	cfg.MaxAge = time.Hour
 	stale := makeEvent(map[string]any{}, time.Now().Add(-61*time.Minute))
 	err := relay.New(cfg).Forward(context.Background(), stale)
 	if !errors.Is(err, relay.ErrSkip) {
@@ -81,7 +81,7 @@ func TestRelayDiscardsStaleEvent(t *testing.T) {
 func TestRelayForwardsFreshEvent(t *testing.T) {
 	eb := &mockEB{resp: &eventbridge.PutEventsOutput{Entries: []ebtypes.PutEventsResultEntry{{}}}}
 	cfg := baseConfig(t, eb)
-	cfg.DiscardAge = time.Hour
+	cfg.MaxAge = time.Hour
 	fresh := makeEvent(map[string]any{}, time.Now().Add(-59*time.Minute))
 	if err := relay.New(cfg).Forward(context.Background(), fresh); err != nil {
 		t.Fatalf("unexpected error for fresh event: %v", err)

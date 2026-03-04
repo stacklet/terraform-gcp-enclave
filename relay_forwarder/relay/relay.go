@@ -56,7 +56,7 @@ type EBPutter interface {
 type Config struct {
 	Putters    <-chan EBPutter
 	PutterWait time.Duration // how long Forward waits for a putter before dropping
-	DiscardAge time.Duration // if > 0, events older than this are silently dropped
+	MaxAge     time.Duration // if > 0, events older than this are silently dropped
 	BusName    string
 	DetailType string
 }
@@ -74,8 +74,8 @@ func New(cfg Config) *Relay {
 // Forward sends ev to EventBridge. It returns ErrSkip if the event should be
 // silently ack'd (backoff in progress, context cancelled, stale event, permanent EB failure).
 func (r *Relay) Forward(ctx context.Context, ev Event) error {
-	if r.cfg.DiscardAge > 0 {
-		if age := time.Since(ev.Time); age > r.cfg.DiscardAge {
+	if r.cfg.MaxAge > 0 {
+		if age := time.Since(ev.Time); age > r.cfg.MaxAge {
 			slog.Info("Dropping stale event", "age", age.Round(time.Second))
 			return ErrSkip
 		}
@@ -87,7 +87,7 @@ func (r *Relay) Forward(ctx context.Context, ev Event) error {
 		if eb != nil {
 			return r.send(ctx, eb, ev)
 		}
-		slog.Debug("Dropping event; credential backoff in progress")
+		slog.Info("Dropping event; credential backoff in progress")
 	case <-t.C:
 		slog.Warn("Putter not ready; dropping event", "wait", r.cfg.PutterWait)
 	case <-ctx.Done():

@@ -217,18 +217,16 @@ variable "events_relay" {
     ])
     audit_log_include_children = optional(bool, false)
     security_findings_filter   = optional(string, "state = \"ACTIVE\"")
-    event_discard_age_s        = optional(number, 3600)
+    event_max_age_s            = optional(number, 3600)
     function = optional(object({
-      debug           = optional(bool, false)
-      max_concurrency = optional(number, 80)
-      cpu             = optional(string, "1")
-      memory          = optional(string, "512M")
+      debug  = optional(bool, false)
+      cpu    = optional(string, "1")
+      memory = optional(string, "256M")
       }),
       {
-        debug           = false
-        max_concurrency = 80
-        cpu             = "1"
-        memory          = "512M"
+        debug  = false
+        cpu    = "1"
+        memory = "256M"
       }
     )
   })
@@ -239,17 +237,13 @@ Configuration for GCP events relay to Stacklet.
   - asset_types: The asset types that the cloud asset inventory feed provides.
   - audit_log_include_children: Whether audit log sinks include logs from child resources (folders/projects).
   - security_findings_filter: Filter to apply as streaming config for the security command center findings. By default all active findings are forwarded.
-  - event_discard_age_s: Events older than this many seconds are silently dropped before forwarding. Default 3600 (1 hour).
+  - event_max_age_s: Events older than this many seconds are silently dropped before forwarding. Default 3600 (1 hour).
   - function: Relay function options:
     - debug: Whether to enable debug log.
-    - max_concurrency: Maximum concurrency for the Cloud function. Higher values increase throughput but require more CPU.
-                       Must be paired with adequate CPU allocation (cpu >= 1 required for concurrency > 1).
     - cpu: CPU allocation for Cloud Function instances. Valid values: '0.08' to '8'
            (in increments of 0.001 below 1, or 1/2/4/6/8 for >= 1).
-           Default '1' supports high concurrency. Note: GCP requires cpu >= 1 when max_concurrency > 1.
     - memory: Memory allocation for Cloud Function instances. Valid values: '128M' to '32G'
-              in increments (e.g., '256M', '512M', '1G', '2G'). Default '512M'. Make sure
-              to configure memory values appropriately based on CPU count per GCP docs.
+              in increments (e.g., '256M', '512M', '1G', '2G'). Default '256M'.
 EOT
 }
 

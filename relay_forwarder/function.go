@@ -25,11 +25,11 @@ func init() {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
 
-	discardAgeSecs, err := strconv.Atoi(os.Getenv("RELAY_DISCARD_AGE_S"))
-	if err != nil || discardAgeSecs <= 0 {
-		log.Fatalf("RELAY_DISCARD_AGE_S must be a positive integer, got %q", os.Getenv("RELAY_DISCARD_AGE_S"))
+	maxAgeSecs, err := strconv.Atoi(os.Getenv("RELAY_MAX_AGE_S"))
+	if err != nil || maxAgeSecs <= 0 {
+		log.Fatalf("RELAY_MAX_AGE_S must be a positive integer, got %q", os.Getenv("RELAY_MAX_AGE_S"))
 	}
-	discardAge := time.Duration(discardAgeSecs) * time.Second
+	maxAge := time.Duration(maxAgeSecs) * time.Second
 
 	busARN := os.Getenv("RELAY_BUS_ARN")
 	// ARN format: arn:aws:events:<region>:<account>:event-bus/<name>
@@ -59,7 +59,7 @@ func init() {
 	_relay = relay.New(relay.Config{
 		Putters:    clients,
 		PutterWait: 30 * time.Second,
-		DiscardAge: discardAge,
+		MaxAge:     maxAge,
 		BusName:    busName,
 		DetailType: detailType,
 	})
