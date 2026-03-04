@@ -9,8 +9,8 @@ resource "google_cloudfunctions2_function" "relay" {
   description = var.description
 
   build_config {
-    runtime     = "python312"
-    entry_point = "forward_event"
+    runtime     = "go124"
+    entry_point = "ForwardEvent"
 
     source {
       storage_source {
@@ -29,11 +29,10 @@ resource "google_cloudfunctions2_function" "relay" {
     available_memory                 = var.memory
 
     environment_variables = {
-      AWS_EVENT_BUS         = var.aws_bus_arn
-      AWS_ROLE              = var.aws_role_arn
-      LOG_DEBUG             = var.debug ? "DEBUG" : ""
-      RELAY_DETAIL_TYPE     = var.relay_detail_type
-      CLOUD_RUN_CONCURRENCY = var.max_concurrency
+      AWS_EVENT_BUS     = var.aws_bus_arn
+      AWS_ROLE          = var.aws_role_arn
+      LOG_DEBUG         = var.debug ? "DEBUG" : ""
+      RELAY_DETAIL_TYPE = var.relay_detail_type
     }
     ingress_settings      = "ALLOW_INTERNAL_ONLY"
     service_account_email = var.service_account_email

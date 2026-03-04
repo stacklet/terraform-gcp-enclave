@@ -1,10 +1,9 @@
-# format terraform and python files
+# format terraform and go files
 format:
     terraform fmt -recursive
-    uv run ruff check --fix relay_forwarder/ tests/
-    uv run ruff format relay_forwarder/ tests/
+    gofmt -w relay_forwarder/
 
-# lint terraform and python files
+# lint terraform and go files
 lint:
     #!/usr/bin/env bash
     set -e
@@ -13,17 +12,11 @@ lint:
     terraform init
     terraform validate
     tflint -f compact --recursive
-    uv run ruff check relay_forwarder/ tests/
-    uv run mypy
+    go vet ./relay_forwarder/...
 
 docs:
     terraform-docs .
 
-# sync python dev environment and regenerate requirements.txt
-sync:
-    uv sync
-    uv export --no-dev --no-hashes --no-emit-project --output-file relay_forwarder/requirements.txt
-
-# run python tests
+# run go tests
 test:
-    uv run pytest
+    cd relay_forwarder && go test -race ./...
