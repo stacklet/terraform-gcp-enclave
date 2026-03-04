@@ -7,7 +7,7 @@ format-tf:
 
 # format go files
 format-go:
-    gofmt -w relay_forwarder/
+    env -C relay_forwarder go fmt ./...
 
 # lint files
 lint: lint-tf lint-go lint-docs
@@ -24,7 +24,12 @@ lint-tf:
 
 # lint go files
 lint-go:
-    cd relay_forwarder && go vet ./...
+    #!/usr/bin/env bash
+    set -e
+
+    cd relay_forwarder
+    go vet ./...
+    golangci-lint run --fix
 
 # lint readme
 lint-docs:
@@ -35,4 +40,4 @@ docs:
 
 # run go tests
 test:
-    cd relay_forwarder && go test -race ./...
+    env -C relay_forwarder go test -race ./...

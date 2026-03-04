@@ -1,4 +1,5 @@
 golang 1.24.3
+golangci-lint v2.8.0
 just 1.40.0
 terraform 1.13.5
 terraform-docs 0.20.0
