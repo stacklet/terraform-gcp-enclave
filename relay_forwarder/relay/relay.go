@@ -16,12 +16,18 @@ import (
 // ErrSkip signals that a Pub/Sub message should be silently ack'd.
 var ErrSkip = errors.New("skip")
 
-// ebAuthCodes are EventBridge errors that indicate the current credentials are
-// invalid. These are dropped (ErrSkip) rather than retried because retrying
-// with the same dead client is pointless; CredLoop will rotate credentials
-// independently and the next invocation will use fresh ones.
+// ebAuthCodes are EventBridge errors that mean authentication is not configured
+// correctly: the role doesn't trust this identity (AccessDeniedException), the
+// identity provider is unrecognised (UnrecognizedClientException), or the client
+// token is structurally invalid (InvalidClientTokenId). All require human
+// intervention, so events are dropped (ErrSkip) rather than retried.
+//
+// ExpiredTokenException is intentionally excluded: it is transient. CredLoop
+// refreshes credentials before expiry, but clock skew or a slow refresh can
+// leave an expired client in Serve. Returning a retryable error lets Cloud
+// Functions retry after a short delay, by which time CredLoop will have
+// produced a fresh client. Dropping the message would silently lose it.
 var ebAuthCodes = map[string]bool{
-	"ExpiredTokenException":       true,
 	"AccessDeniedException":       true,
 	"UnrecognizedClientException": true,
 	"InvalidClientTokenId":        true,

@@ -124,10 +124,30 @@ func TestRelaySendsCorrectFields(t *testing.T) {
 }
 
 func TestRelayAuthErrorReturnsSkip(t *testing.T) {
-	eb := &mockEB{err: apiErr("AccessDeniedException")}
+	for _, code := range []string{"AccessDeniedException", "UnrecognizedClientException", "InvalidClientTokenId"} {
+		t.Run(code, func(t *testing.T) {
+			eb := &mockEB{err: apiErr(code)}
+			err := makeRelay(t, eb).Forward(context.Background(), relay.Event{})
+			if !errors.Is(err, relay.ErrSkip) {
+				t.Fatalf("want ErrSkip for %s, got %v", code, err)
+			}
+		})
+	}
+}
+
+func TestRelayExpiredTokenIsRetried(t *testing.T) {
+	// ExpiredTokenException is transient: CredLoop refreshes credentials before
+	// expiry, but clock skew or a slow refresh can leave an expired client in
+	// Serve. Returning a retryable error (not ErrSkip) lets Cloud Functions
+	// retry; by then CredLoop will have produced a fresh client. Dropping the
+	// message would silently lose it.
+	eb := &mockEB{err: apiErr("ExpiredTokenException")}
 	err := makeRelay(t, eb).Forward(context.Background(), relay.Event{})
-	if !errors.Is(err, relay.ErrSkip) {
-		t.Fatalf("want ErrSkip, got %v", err)
+	if errors.Is(err, relay.ErrSkip) {
+		t.Fatal("ExpiredTokenException should be retryable, not ErrSkip")
+	}
+	if err == nil {
+		t.Fatal("expected an error")
 	}
 }
 

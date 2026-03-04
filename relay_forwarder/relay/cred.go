@@ -117,10 +117,20 @@ func CredLoop(ctx context.Context, cfg CredConfig, refresher ClientRefresher) <-
 //
 //	GCP metadata identity token → STS AssumeRoleWithWebIdentity → EventBridge client
 func GCPSTSRefresher(region, roleARN string) ClientRefresher {
+	// stsAuthCodes are STS errors that mean authentication is not configured
+	// correctly: the GCP identity token is structurally invalid or untrusted
+	// (InvalidIdentityToken), the identity provider rejects the claim
+	// (IDPRejectedClaim), or the role doesn't permit this identity (AccessDenied).
+	// All require human intervention, so CredLoop is signalled via AuthFailure
+	// to emit nil (dropping events) and back off at MaxBackoff.
+	//
+	// ExpiredToken is intentionally excluded: it means the GCP metadata server
+	// returned a token that was already expired, which is an infrastructure
+	// hiccup rather than a misconfiguration. It is treated as a transient error
+	// and backs off exponentially so CredLoop retries promptly.
 	stsAuthCodes := map[string]bool{
 		"InvalidIdentityToken": true,
 		"IDPRejectedClaim":     true,
-		"ExpiredToken":         true,
 		"AccessDenied":         true,
 	}
 	return func(ctx context.Context) (EBPutter, time.Time, error) {
