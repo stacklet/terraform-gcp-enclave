@@ -38,7 +38,7 @@ jobs:
 
       - name: Lint Terraform files
         run: |
-          just lint
+          just lint-tf
 
   lint-docs:
     runs-on: ubuntu-latest
