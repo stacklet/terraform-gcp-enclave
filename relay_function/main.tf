@@ -48,6 +48,8 @@ resource "google_cloudfunctions2_function" "relay" {
   }
 
   lifecycle {
+    # Force replacement when source changes, since updating in place doesn't
+    # redeploy the function code.
     replace_triggered_by = [terraform_data.source_sha]
   }
 }
@@ -55,15 +57,29 @@ resource "google_cloudfunctions2_function" "relay" {
 resource "google_cloudfunctions2_function_iam_member" "invoker" {
   project        = var.project
   location       = var.location
-  cloud_function = var.name
+  cloud_function = google_cloudfunctions2_function.relay.name
   role           = "roles/cloudfunctions.invoker"
   member         = "serviceAccount:${var.service_account_email}"
+
+  lifecycle {
+    # When the function is replaced, GCP destroys the underlying Cloud Run
+    # service and its IAM policy along with it. Without this, Terraform's
+    # state would show the IAM bindings as still existing while GCP has
+    # silently dropped them, leaving the push subscription unauthorised until
+    # the next apply detects the drift.
+    replace_triggered_by = [google_cloudfunctions2_function.relay]
+  }
 }
 
 resource "google_cloud_run_service_iam_member" "invoker" {
   project  = var.project
   location = var.location
-  service  = var.name
+  service  = google_cloudfunctions2_function.relay.name
   role     = "roles/run.invoker"
   member   = "serviceAccount:${var.service_account_email}"
+
+  lifecycle {
+    # Same reasoning as google_cloudfunctions2_function_iam_member.invoker above.
+    replace_triggered_by = [google_cloudfunctions2_function.relay]
+  }
 }

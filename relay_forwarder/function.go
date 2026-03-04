@@ -70,7 +70,7 @@ func forwardEvent(ctx context.Context, e cloudevents.Event) error {
 	ev, err := transformEvent(e)
 	if err != nil {
 		slog.Warn("Dropping unparseable event", "id", e.ID(), "err", err)
-		return nil // drop; can't be retried usefully
+		return nil // drop; a malformed event won't become parseable on retry
 	}
 
 	err = _relay.Forward(ctx, ev)
