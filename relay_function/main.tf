@@ -9,8 +9,8 @@ resource "google_cloudfunctions2_function" "relay" {
   description = var.description
 
   build_config {
-    runtime     = "python312"
-    entry_point = "forward_event"
+    runtime     = "go124"
+    entry_point = "ForwardEvent"
 
     source {
       storage_source {
@@ -21,19 +21,15 @@ resource "google_cloudfunctions2_function" "relay" {
   }
 
   service_config {
-    # explicitly set concurrency and cpu values.  When CPU < 1, concurrency
-    # value is set to 1 and can cause 429 errors when large numbers of
-    # concurrent requests come in
-    max_instance_request_concurrency = var.max_concurrency
-    available_cpu                    = var.cpu
-    available_memory                 = var.memory
+    available_cpu    = var.cpu
+    available_memory = var.memory
 
     environment_variables = {
-      AWS_EVENT_BUS         = var.aws_bus_arn
-      AWS_ROLE              = var.aws_role_arn
-      LOG_DEBUG             = var.debug ? "DEBUG" : ""
-      RELAY_DETAIL_TYPE     = var.relay_detail_type
-      CLOUD_RUN_CONCURRENCY = var.max_concurrency
+      RELAY_BUS_ARN     = var.aws_bus_arn
+      RELAY_DEBUG       = var.debug ? "nonempty" : ""
+      RELAY_MAX_AGE_S   = tostring(var.event_max_age_s)
+      RELAY_DETAIL_TYPE = var.relay_detail_type
+      RELAY_ROLE_ARN    = var.aws_role_arn
     }
     ingress_settings      = "ALLOW_INTERNAL_ONLY"
     service_account_email = var.service_account_email
@@ -48,6 +44,8 @@ resource "google_cloudfunctions2_function" "relay" {
   }
 
   lifecycle {
+    # Force replacement when source changes, since updating in place doesn't
+    # redeploy the function code.
     replace_triggered_by = [terraform_data.source_sha]
   }
 }
@@ -55,15 +53,29 @@ resource "google_cloudfunctions2_function" "relay" {
 resource "google_cloudfunctions2_function_iam_member" "invoker" {
   project        = var.project
   location       = var.location
-  cloud_function = var.name
+  cloud_function = google_cloudfunctions2_function.relay.name
   role           = "roles/cloudfunctions.invoker"
   member         = "serviceAccount:${var.service_account_email}"
+
+  lifecycle {
+    # When the function is replaced, GCP destroys the underlying Cloud Run
+    # service and its IAM policy along with it. Without this, Terraform's
+    # state would show the IAM bindings as still existing while GCP has
+    # silently dropped them, leaving the push subscription unauthorised until
+    # the next apply detects the drift.
+    replace_triggered_by = [google_cloudfunctions2_function.relay]
+  }
 }
 
 resource "google_cloud_run_service_iam_member" "invoker" {
   project  = var.project
   location = var.location
-  service  = var.name
+  service  = google_cloudfunctions2_function.relay.name
   role     = "roles/run.invoker"
   member   = "serviceAccount:${var.service_account_email}"
+
+  lifecycle {
+    # Same reasoning as google_cloudfunctions2_function_iam_member.invoker above.
+    replace_triggered_by = [google_cloudfunctions2_function.relay]
+  }
 }

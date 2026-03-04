@@ -63,9 +63,9 @@ module "scc_finding_relay" {
   aws_bus_arn           = var.events_relay.aws_bus_arn
   aws_role_arn          = var.events_relay.aws_role_arn
   debug                 = var.events_relay.function.debug
-  max_concurrency       = var.events_relay.function.max_concurrency
   cpu                   = var.events_relay.function.cpu
   memory                = var.events_relay.function.memory
+  event_max_age_s       = var.events_relay.event_max_age_s
   service_account_email = google_service_account.events_relay.email
 
   depends_on = [google_project_service.service["cloudfunctions"]]
