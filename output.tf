@@ -70,3 +70,18 @@ output "access_blob" {
     roundtripDigest = var.roundtrip_digest
   }))
 }
+
+output "legacy_cost_access_blob" { # XXX matches access_blob from gcp-cost-setup, for testing
+  value = base64encode(jsonencode({
+    projectId       = local.project_id
+    roundtripDigest = var.roundtrip_digest
+    tableLocations = [
+      for s in var.cost_sources : {
+        table    = s.billing_table
+        location = data.google_bigquery_dataset.table_datasets[s.billing_table].location
+      }
+    ]
+    wifAudience         = local.wif_audience,
+    wifImpersonationURL = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${google_service_account.sa["stk-cost-query"].email}:generateAccessToken"
+  }))
+}

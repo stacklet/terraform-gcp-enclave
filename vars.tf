@@ -97,8 +97,13 @@ EOT
 }
 
 variable "read_only_roles" {
-  type        = list(string)
-  default     = ["roles/browser", "roles/cloudasset.viewer"]
+  type = list(string)
+  default = [
+    "roles/browser",
+    "roles/cloudasset.viewer",
+    "roles/iam.securityReviewer",
+    "roles/viewer",
+  ]
   description = "GCP roles granted to the stk-read-only service account and as a baseline to all execution contexts."
 
   validation {

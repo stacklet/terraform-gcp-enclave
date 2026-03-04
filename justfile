@@ -1,10 +1,19 @@
-# format terraform and go files
-format:
+# format all files
+format: format-tf format-go
+
+# format terraform files
+format-tf:
     terraform fmt -recursive
+
+# format go files
+format-go:
     gofmt -w relay_forwarder/
 
-# lint terraform and go files
-lint:
+# lint files
+lint: lint-tf lint-go lint-docs
+
+# lint terraform files
+lint-tf:
     #!/usr/bin/env bash
     set -e
 
@@ -12,7 +21,14 @@ lint:
     terraform init
     terraform validate
     tflint -f compact --recursive
-    go vet ./relay_forwarder/...
+
+# lint go files
+lint-go:
+    cd relay_forwarder && go vet ./...
+
+# lint readme
+lint-docs:
+    terraform-docs --output-check .
 
 docs:
     terraform-docs .
