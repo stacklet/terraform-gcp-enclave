@@ -69,7 +69,7 @@ func TestRelayDiscardsStaleEvent(t *testing.T) {
 	cfg := baseConfig(t, eb)
 	cfg.MaxAge = time.Hour
 	stale := makeEvent(map[string]any{}, time.Now().Add(-61*time.Minute))
-	err := relay.New(cfg).Forward(context.Background(), stale)
+	err := relay.New(cfg).Forward(t.Context(), stale)
 	if !errors.Is(err, relay.ErrSkip) {
 		t.Fatalf("want ErrSkip for stale event, got %v", err)
 	}
@@ -83,7 +83,7 @@ func TestRelayForwardsFreshEvent(t *testing.T) {
 	cfg := baseConfig(t, eb)
 	cfg.MaxAge = time.Hour
 	fresh := makeEvent(map[string]any{}, time.Now().Add(-59*time.Minute))
-	if err := relay.New(cfg).Forward(context.Background(), fresh); err != nil {
+	if err := relay.New(cfg).Forward(t.Context(), fresh); err != nil {
 		t.Fatalf("unexpected error for fresh event: %v", err)
 	}
 	if eb.got == nil {
@@ -97,7 +97,7 @@ func TestRelaySendsCorrectFields(t *testing.T) {
 	eb := &mockEB{resp: &eventbridge.PutEventsOutput{FailedEntryCount: 0, Entries: []ebtypes.PutEventsResultEntry{{}}}}
 	ts := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	ev := makeEvent(map[string]any{"k": "v"}, ts)
-	if err := makeRelay(t, eb).Forward(context.Background(), ev); err != nil {
+	if err := makeRelay(t, eb).Forward(t.Context(), ev); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -127,7 +127,7 @@ func TestRelayAuthErrorReturnsSkip(t *testing.T) {
 	for _, code := range []string{"AccessDeniedException", "UnrecognizedClientException", "InvalidClientTokenId"} {
 		t.Run(code, func(t *testing.T) {
 			eb := &mockEB{err: apiErr(code)}
-			err := makeRelay(t, eb).Forward(context.Background(), relay.Event{})
+			err := makeRelay(t, eb).Forward(t.Context(), relay.Event{})
 			if !errors.Is(err, relay.ErrSkip) {
 				t.Fatalf("want ErrSkip for %s, got %v", code, err)
 			}
@@ -142,7 +142,7 @@ func TestRelayExpiredTokenIsRetried(t *testing.T) {
 	// retry; by then CredLoop will have produced a fresh client. Dropping the
 	// message would silently lose it.
 	eb := &mockEB{err: apiErr("ExpiredTokenException")}
-	err := makeRelay(t, eb).Forward(context.Background(), relay.Event{})
+	err := makeRelay(t, eb).Forward(t.Context(), relay.Event{})
 	if errors.Is(err, relay.ErrSkip) {
 		t.Fatal("ExpiredTokenException should be retryable, not ErrSkip")
 	}
@@ -157,7 +157,7 @@ func TestRelayPermanentEntryFailureReturnsSkip(t *testing.T) {
 		FailedEntryCount: 1,
 		Entries:          []ebtypes.PutEventsResultEntry{{ErrorCode: &code, ErrorMessage: &msg}},
 	}}
-	err := makeRelay(t, eb).Forward(context.Background(), relay.Event{})
+	err := makeRelay(t, eb).Forward(t.Context(), relay.Event{})
 	if !errors.Is(err, relay.ErrSkip) {
 		t.Fatalf("want ErrSkip for permanent entry failure, got %v", err)
 	}
@@ -171,7 +171,7 @@ func TestRelayTransientEntryFailureIsRetried(t *testing.T) {
 				FailedEntryCount: 1,
 				Entries:          []ebtypes.PutEventsResultEntry{{ErrorCode: &code, ErrorMessage: &msg}},
 			}}
-			err := makeRelay(t, eb).Forward(context.Background(), relay.Event{})
+			err := makeRelay(t, eb).Forward(t.Context(), relay.Event{})
 			if errors.Is(err, relay.ErrSkip) {
 				t.Fatalf("want retryable error for %s, got ErrSkip", code)
 			}
@@ -184,7 +184,7 @@ func TestRelayTransientEntryFailureIsRetried(t *testing.T) {
 
 func TestRelayNonAuthErrorIsReturned(t *testing.T) {
 	eb := &mockEB{err: apiErr("ThrottlingException")}
-	err := makeRelay(t, eb).Forward(context.Background(), relay.Event{})
+	err := makeRelay(t, eb).Forward(t.Context(), relay.Event{})
 	if errors.Is(err, relay.ErrSkip) {
 		t.Fatal("ThrottlingException should not return ErrSkip")
 	}
@@ -197,21 +197,21 @@ func TestRelayNonAuthErrorIsReturned(t *testing.T) {
 
 func TestRelayForwardReturnsSkipOnColdStartTimeout(t *testing.T) {
 	r := relay.New(relay.Config{Putters: make(chan relay.EBPutter), PutterWait: time.Millisecond, BusName: "b", DetailType: "dt"})
-	err := r.Forward(context.Background(), relay.Event{})
+	err := r.Forward(t.Context(), relay.Event{})
 	if !errors.Is(err, relay.ErrSkip) {
 		t.Fatalf("want ErrSkip on timeout, got %v", err)
 	}
 }
 
 func TestRelayForwardReturnsSkipWithNilClient(t *testing.T) {
-	err := makeRelay(t, nil).Forward(context.Background(), relay.Event{})
+	err := makeRelay(t, nil).Forward(t.Context(), relay.Event{})
 	if !errors.Is(err, relay.ErrSkip) {
 		t.Fatalf("want ErrSkip, got %v", err)
 	}
 }
 
 func TestRelayForwardReturnsSkipOnContextCancel(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel() // already cancelled
 	r := relay.New(relay.Config{Putters: make(chan relay.EBPutter), PutterWait: time.Minute, BusName: "b", DetailType: "dt"})
 	err := r.Forward(ctx, relay.Event{})

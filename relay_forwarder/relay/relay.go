@@ -96,6 +96,12 @@ func (r *Relay) Forward(ctx context.Context, ev Event) error {
 	return ErrSkip
 }
 
+// send puts a single event to EventBridge. PutEvents supports up to 10 entries
+// per call, so batching is theoretically possible: a pool of consumer goroutines
+// could each accept {Event, chan error} pairs and flush them as a batch. In
+// practice, our asset-type filtering keeps volume well below the threshold where
+// this matters (~10k events/second sustained); the added complexity isn't
+// justified until we see that in production.
 func (r *Relay) send(ctx context.Context, eb EBPutter, ev Event) error {
 	resp, err := eb.PutEvents(ctx, &eventbridge.PutEventsInput{
 		Entries: []ebtypes.PutEventsRequestEntry{{

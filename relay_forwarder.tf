@@ -29,7 +29,7 @@ data "archive_file" "events_relay_function_source" {
 resource "google_storage_bucket" "events_relay_function_source_bucket" {
   name                        = "${local.prefix}${local.project_id}-gcf-source"
   project                     = local.project_id
-  location                    = var.bucket_location
+  location                    = var.infrastructure.resource_location
   uniform_bucket_level_access = true
 
   soft_delete_policy {

@@ -38,10 +38,6 @@ variable "debug" {
   type = bool
 }
 
-variable "cpu" {
-  type = string
-}
-
 variable "memory" {
   type = string
 }
@@ -58,6 +54,10 @@ variable "pubsub_topic_id" {
   type = string
 }
 
-variable "event_max_age_s" {
+variable "max_age_s" {
+  type = number
+}
+
+variable "max_instances" {
   type = number
 }

@@ -9,7 +9,7 @@ resource "google_cloudfunctions2_function" "relay" {
   description = var.description
 
   build_config {
-    runtime     = "go124"
+    runtime     = "go125"
     entry_point = "ForwardEvent"
 
     source {
@@ -21,18 +21,23 @@ resource "google_cloudfunctions2_function" "relay" {
   }
 
   service_config {
-    available_cpu    = var.cpu
+    # cpu=1 is hardcoded: the relay is purely I/O-bound (waiting on EventBridge),
+    # so more CPU buys nothing. Less than 1 disables concurrency in Cloud Run,
+    # serialising all invocations — exactly wrong for a relay under load.
+    available_cpu    = "1"
     available_memory = var.memory
 
     environment_variables = {
       RELAY_BUS_ARN     = var.aws_bus_arn
       RELAY_DEBUG       = var.debug ? "nonempty" : ""
-      RELAY_MAX_AGE_S   = tostring(var.event_max_age_s)
+      RELAY_MAX_AGE_S   = tostring(var.max_age_s)
       RELAY_DETAIL_TYPE = var.relay_detail_type
       RELAY_ROLE_ARN    = var.aws_role_arn
     }
-    ingress_settings      = "ALLOW_INTERNAL_ONLY"
-    service_account_email = var.service_account_email
+    max_instance_count               = var.max_instances
+    max_instance_request_concurrency = 100
+    ingress_settings                 = "ALLOW_INTERNAL_ONLY"
+    service_account_email            = var.service_account_email
   }
 
   event_trigger {

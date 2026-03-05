@@ -1,12 +1,12 @@
 locals {
-  project_resource_count = var.project.create ? 1 : 0
-  project_data_count     = var.project.create ? 0 : 1
+  project_resource_count = var.infrastructure.create_project != null ? 1 : 0
+  project_data_count     = var.infrastructure.create_project != null ? 0 : 1
 
-  prefix = var.resource_prefix == "" ? "" : "${var.resource_prefix}-"
+  prefix = var.infrastructure.resource_prefix == "" ? "" : "${var.infrastructure.resource_prefix}-"
 
-  project_id = var.project.create ? google_project.integration[0].project_id : var.project.id
+  project_id = var.infrastructure.create_project != null ? google_project.integration[0].project_id : var.infrastructure.project_id
   project_number = (
-    var.project.create
+    var.infrastructure.create_project != null
     ? google_project.integration[0].number
     : data.google_project.integration[0].number
   )
@@ -17,17 +17,92 @@ locals {
   ]))
   folder_ids  = toset(flatten([for e in var.organizations : e.folder_ids]))
   project_ids = toset(flatten([for e in var.organizations : e.project_ids]))
+
+  read_only_roles = [
+    "roles/browser",
+    "roles/cloudasset.viewer",
+    "roles/iam.securityReviewer",
+    "roles/viewer",
+  ]
+
+  asset_types = [
+    "apikeys.googleapis.com/Key",
+    "appengine.googleapis.com/Application",
+    "bigquery.googleapis.com/Dataset",
+    "bigtableadmin.googleapis.com/Instance",
+    "cloudbilling.googleapis.com/BillingAccount",
+    "cloudfunctions.googleapis.com/CloudFunction",
+    "cloudkms.googleapis.com/KeyRing",
+    "cloudresourcemanager.googleapis.com/Folder",
+    "cloudresourcemanager.googleapis.com/Organization",
+    "cloudresourcemanager.googleapis.com/Project",
+    "compute.googleapis.com/Address",
+    "compute.googleapis.com/Autoscaler",
+    "compute.googleapis.com/BackendBucket",
+    "compute.googleapis.com/BackendService",
+    "compute.googleapis.com/Disk",
+    "compute.googleapis.com/Firewall",
+    "compute.googleapis.com/ForwardingRule",
+    "compute.googleapis.com/GlobalAddress",
+    "compute.googleapis.com/GlobalForwardingRule",
+    "compute.googleapis.com/HealthCheck",
+    "compute.googleapis.com/HttpHealthCheck",
+    "compute.googleapis.com/HttpsHealthCheck",
+    "compute.googleapis.com/Image",
+    "compute.googleapis.com/Instance",
+    "compute.googleapis.com/InstanceTemplate",
+    "compute.googleapis.com/Interconnect",
+    "compute.googleapis.com/InterconnectAttachment",
+    "compute.googleapis.com/Network",
+    "compute.googleapis.com/Project",
+    "compute.googleapis.com/Route",
+    "compute.googleapis.com/Router",
+    "compute.googleapis.com/SecurityPolicy",
+    "compute.googleapis.com/Snapshot",
+    "compute.googleapis.com/SslCertificate",
+    "compute.googleapis.com/SslPolicy",
+    "compute.googleapis.com/Subnetwork",
+    "compute.googleapis.com/TargetHttpProxy",
+    "compute.googleapis.com/TargetHttpsProxy",
+    "compute.googleapis.com/TargetInstance",
+    "compute.googleapis.com/TargetPool",
+    "compute.googleapis.com/TargetSslProxy",
+    "compute.googleapis.com/TargetTcpProxy",
+    "compute.googleapis.com/UrlMap",
+    "container.googleapis.com/Cluster",
+    "dataflow.googleapis.com/Job",
+    "datafusion.googleapis.com/Instance",
+    "dns.googleapis.com/ManagedZone",
+    "dns.googleapis.com/Policy",
+    "iam.googleapis.com/Role",
+    "iam.googleapis.com/ServiceAccount",
+    "logging.googleapis.com/LogMetric",
+    "logging.googleapis.com/LogSink",
+    "osconfig.googleapis.com/PatchDeployment",
+    "pubsub.googleapis.com/Snapshot",
+    "pubsub.googleapis.com/Subscription",
+    "pubsub.googleapis.com/Topic",
+    "redis.googleapis.com/Instance",
+    "run.googleapis.com/Job",
+    "run.googleapis.com/Revision",
+    "run.googleapis.com/Service",
+    "secretmanager.googleapis.com/Secret",
+    "serviceusage.googleapis.com/Service",
+    "spanner.googleapis.com/Instance",
+    "sqladmin.googleapis.com/Instance",
+    "storage.googleapis.com/Bucket",
+  ]
 }
 
 resource "google_project" "integration" {
   count = local.project_resource_count
 
   name            = "Stacklet integration"
-  project_id      = var.project.id
-  org_id          = var.project.org_id
-  folder_id       = var.project.folder_id
-  billing_account = var.project.billing_account_id
-  labels          = var.project.labels
+  project_id      = var.infrastructure.project_id
+  org_id          = var.infrastructure.create_project.org_id
+  folder_id       = var.infrastructure.create_project.folder_id
+  billing_account = var.infrastructure.create_project.billing_account_id
+  labels          = var.infrastructure.create_project.labels
 
   deletion_policy = "DELETE"
 }
@@ -35,7 +110,7 @@ resource "google_project" "integration" {
 data "google_project" "integration" {
   count = local.project_data_count
 
-  project_id = var.project.id
+  project_id = var.infrastructure.project_id
 }
 
 resource "google_project_service" "service" {
@@ -88,6 +163,6 @@ resource "google_iam_workload_identity_pool_provider" "aws_access" {
   disabled                           = false
 
   aws {
-    account_id = var.stacklet_aws.account_id
+    account_id = var.integration_surface.trust_aws.account_id
   }
 }
