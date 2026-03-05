@@ -86,9 +86,10 @@ module "audit_relay" {
   source_sha            = terraform_data.events_relay_function_source_sha.output
   aws_bus_arn           = var.integration_surface.aws_relay.bus_arn
   aws_role_arn          = var.integration_surface.aws_relay.role_arn
-  debug                 = var.advanced.debug
-  memory                = var.advanced.memory
-  event_max_age_s       = var.advanced.max_age_s
+  debug                 = var.relay.debug
+  memory                = var.relay.memory
+  max_age_s             = var.relay.max_age_s
+  max_instances         = var.relay.max_instances
   service_account_email = google_service_account.events_relay.email
 
   depends_on = [google_project_service.service["cloudfunctions"]]

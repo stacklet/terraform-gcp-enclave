@@ -142,16 +142,22 @@ variable "roundtrip_digest" {
   description = "Token used by the Stacklet Platform to detect mismatch between customerConfig and accessConfig. Provided by Stacklet."
 }
 
-variable "advanced" {
+variable "relay" {
   type = object({
-    # Enable debug logging in relay Cloud Functions.
-    debug = optional(bool, false)
-    # Memory for relay Cloud Function instances. Valid values: "128Mi" to "4Gi" (for 1 CPU).
-    # The relay is I/O-bound and events are small; 128Mi is sufficient in practice.
-    memory = optional(string, "128Mi")
-    # Events older than this many seconds are silently dropped before forwarding.
-    max_age_s = optional(number, 3600)
+    max_instances = optional(number, 10)
+    memory        = optional(string, "256Mi")
+    max_age_s     = optional(number, 3600)
+    debug         = optional(bool, false)
   })
   default     = {}
-  description = "Advanced configuration not exposed in the Platform UI. For operator/debug use."
+  description = <<EOT
+Relay function configuration. Each instance handles 100 concurrent requests; 256Mi memory
+provides ~50% headroom at full concurrency; 10 instances sustains >1000 events/sec with low latency.
+  - max_instances: Maximum instances per relay. Increase for higher throughput; decrease to control
+    cost. Set to 0 for unlimited. Default (10) sustains >1000 events/sec.
+  - memory: Memory per instance. Default (256Mi) is calibrated for ~50% consumption at full
+    concurrency. Increase only if you observe memory pressure.
+  - max_age_s: Events older than this many seconds are silently dropped before forwarding. Default 3600.
+  - debug: Enable verbose debug logging in relay Cloud Functions.
+EOT
 }

@@ -30,11 +30,13 @@ resource "google_cloudfunctions2_function" "relay" {
     environment_variables = {
       RELAY_BUS_ARN     = var.aws_bus_arn
       RELAY_DEBUG       = var.debug ? "nonempty" : ""
-      RELAY_MAX_AGE_S   = tostring(var.event_max_age_s)
+      RELAY_MAX_AGE_S   = tostring(var.max_age_s)
       RELAY_DETAIL_TYPE = var.relay_detail_type
       RELAY_ROLE_ARN    = var.aws_role_arn
     }
-    ingress_settings      = "ALLOW_INTERNAL_ONLY"
+    max_instance_count               = var.max_instances
+    max_instance_request_concurrency = 100
+    ingress_settings                 = "ALLOW_INTERNAL_ONLY"
     service_account_email = var.service_account_email
   }
 
