@@ -9,7 +9,7 @@ resource "google_cloudfunctions2_function" "relay" {
   description = var.description
 
   build_config {
-    runtime     = "go124"
+    runtime     = "go125"
     entry_point = "ForwardEvent"
 
     source {

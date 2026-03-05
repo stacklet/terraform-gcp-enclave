@@ -146,9 +146,9 @@ variable "advanced" {
   type = object({
     # Enable debug logging in relay Cloud Functions.
     debug = optional(bool, false)
-    # Memory for relay Cloud Function instances. Valid values: "128M" to "32G".
-    # The relay is I/O-bound and events are small; 128M is sufficient in practice.
-    memory = optional(string, "128M")
+    # Memory for relay Cloud Function instances. Valid values: "128Mi" to "4Gi" (for 1 CPU).
+    # The relay is I/O-bound and events are small; 128Mi is sufficient in practice.
+    memory = optional(string, "128Mi")
     # Events older than this many seconds are silently dropped before forwarding.
     max_age_s = optional(number, 3600)
   })
