@@ -37,7 +37,7 @@ resource "google_cloudfunctions2_function" "relay" {
     max_instance_count               = var.max_instances
     max_instance_request_concurrency = 100
     ingress_settings                 = "ALLOW_INTERNAL_ONLY"
-    service_account_email = var.service_account_email
+    service_account_email            = var.service_account_email
   }
 
   event_trigger {
