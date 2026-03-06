@@ -36,11 +36,9 @@
 | Name | Description |
 |------|-------------|
 | <a name="output_access_blob"></a> [access\_blob](#output\_access\_blob) | All other outputs crammed into a single copy/pasteable value. |
-| <a name="output_cost_source_locations"></a> [cost\_source\_locations](#output\_cost\_source\_locations) | The location of each cost source table. |
+| <a name="output_cost_sources"></a> [cost\_sources](#output\_cost\_sources) | The location of each cost source table. |
+| <a name="output_infrastructure"></a> [infrastructure](#output\_infrastructure) | Core infrastructure details for this deployment. |
 | <a name="output_legacy_cost_access_blob"></a> [legacy\_cost\_access\_blob](#output\_legacy\_cost\_access\_blob) | n/a |
 | <a name="output_organizations"></a> [organizations](#output\_organizations) | The organizations configured in this deployment. |
-| <a name="output_project_id"></a> [project\_id](#output\_project\_id) | The project the created resources exist in. |
-| <a name="output_relay_service_account_oauth_id"></a> [relay\_service\_account\_oauth\_id](#output\_relay\_service\_account\_oauth\_id) | OAuth ID for the service account used to relay events to AWS. |
-| <a name="output_service_accounts_access"></a> [service\_accounts\_access](#output\_service\_accounts\_access) | Access details for each service account. |
-| <a name="output_wif_audience"></a> [wif\_audience](#output\_wif\_audience) | The audience value required for impersonation interactions. |
+| <a name="output_security_contexts"></a> [security\_contexts](#output\_security\_contexts) | Access details for each security context. |
 <!-- END_TF_DOCS -->
