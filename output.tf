@@ -75,7 +75,7 @@ output "access_blob" {
       }
     ]
     securityContexts = local.security_contexts
-    roundtripDigest = var.roundtrip_digest
+    roundtripDigest  = var.roundtrip_digest
   }))
 }
 
