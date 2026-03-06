@@ -1,16 +1,22 @@
 locals {
   infrastructure = {
-    project_id       = local.project_id
-    relay_oauth_id   = google_service_account.events_relay.unique_id
-    wif_audience     = "//iam.googleapis.com/${google_iam_workload_identity_pool_provider.aws_access.name}"
-    read_only_email  = google_service_account.sa["stk-read-only"].email
-    cost_query_email = google_service_account.sa["stk-cost-query"].email
+    project_id = local.project_id
+    relay = {
+      oauth_id = google_service_account.events_relay.unique_id
+    }
+    wif = {
+      audience = "//iam.googleapis.com/${google_iam_workload_identity_pool_provider.aws_access.name}"
+      service_accounts = {
+        read_only  = google_service_account.sa["stk-read-only"].email
+        cost_query = google_service_account.sa["stk-cost-query"].email
+      }
+    }
   }
   security_contexts = [
     for ctx in var.security_contexts : {
-      name  = ctx.name
-      roles = concat(local.read_only_roles, ctx.extra_roles)
-      email = google_service_account.sa[ctx.name].email
+      name            = ctx.name
+      roles           = concat(local.read_only_roles, ctx.extra_roles)
+      service_account = google_service_account.sa[ctx.name].email
     }
   ]
   cost_sources = [
@@ -45,11 +51,15 @@ output "access_blob" {
   description = "All other outputs crammed into a single copy/pasteable value."
   value = base64encode(jsonencode({
     infrastructure = {
-      projectId      = local.infrastructure.project_id
-      relayOAuthId   = local.infrastructure.relay_oauth_id
-      wifAudience    = local.infrastructure.wif_audience
-      readOnlyEmail  = local.infrastructure.read_only_email
-      costQueryEmail = local.infrastructure.cost_query_email
+      projectId = local.infrastructure.project_id
+      relay     = { oauthId = local.infrastructure.relay.oauth_id }
+      wif = {
+        audience = local.infrastructure.wif.audience
+        serviceAccounts = {
+          readOnly  = local.infrastructure.wif.service_accounts.read_only
+          costQuery = local.infrastructure.wif.service_accounts.cost_query
+        }
+      }
     }
     organizations = [
       for org in var.organizations : {
@@ -64,8 +74,14 @@ output "access_blob" {
         location     = s.location
       }
     ]
-    securityContexts = local.security_contexts
-    roundtripDigest  = var.roundtrip_digest
+    securityContexts = [
+      for ctx in local.security_contexts : {
+        name           = ctx.name
+        roles          = ctx.roles
+        serviceAccount = ctx.service_account
+      }
+    ]
+    roundtripDigest = var.roundtrip_digest
   }))
 }
 
@@ -79,7 +95,7 @@ output "legacy_cost_access_blob" { # XXX matches access_blob from gcp-cost-setup
         location = data.google_bigquery_dataset.table_datasets[s.billing_table].location
       }
     ]
-    wifAudience         = local.infrastructure.wif_audience,
-    wifImpersonationURL = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${local.infrastructure.cost_query_email}:generateAccessToken"
+    wifAudience         = local.infrastructure.wif.audience,
+    wifImpersonationURL = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${local.infrastructure.wif.service_accounts.cost_query}:generateAccessToken"
   }))
 }
