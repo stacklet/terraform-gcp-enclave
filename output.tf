@@ -6,7 +6,7 @@ locals {
     }
     wif = {
       audience = "//iam.googleapis.com/${google_iam_workload_identity_pool_provider.aws_access.name}"
-      service_accounts = {
+      principals = {
         read_only  = google_service_account.sa["stk-read-only"].email
         cost_query = google_service_account.sa["stk-cost-query"].email
       }
@@ -14,9 +14,9 @@ locals {
   }
   security_contexts = [
     for ctx in var.security_contexts : {
-      name            = ctx.name
-      roles           = concat(local.read_only_roles, ctx.extra_roles)
-      service_account = google_service_account.sa[ctx.name].email
+      name      = ctx.name
+      roles     = concat(local.read_only_roles, ctx.extra_roles)
+      principal = google_service_account.sa[ctx.name].email
     }
   ]
   cost_sources = [
@@ -55,9 +55,9 @@ output "access_blob" {
       relay     = { oauthId = local.infrastructure.relay.oauth_id }
       wif = {
         audience = local.infrastructure.wif.audience
-        serviceAccounts = {
-          readOnly  = local.infrastructure.wif.service_accounts.read_only
-          costQuery = local.infrastructure.wif.service_accounts.cost_query
+        principals = {
+          readOnly  = local.infrastructure.wif.principals.read_only
+          costQuery = local.infrastructure.wif.principals.cost_query
         }
       }
     }
@@ -74,13 +74,7 @@ output "access_blob" {
         location     = s.location
       }
     ]
-    securityContexts = [
-      for ctx in local.security_contexts : {
-        name           = ctx.name
-        roles          = ctx.roles
-        serviceAccount = ctx.service_account
-      }
-    ]
+    securityContexts = local.security_contexts
     roundtripDigest = var.roundtrip_digest
   }))
 }
@@ -96,6 +90,6 @@ output "legacy_cost_access_blob" { # XXX matches access_blob from gcp-cost-setup
       }
     ]
     wifAudience         = local.infrastructure.wif.audience,
-    wifImpersonationURL = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${local.infrastructure.wif.service_accounts.cost_query}:generateAccessToken"
+    wifImpersonationURL = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${local.infrastructure.wif.principals.cost_query}:generateAccessToken"
   }))
 }
