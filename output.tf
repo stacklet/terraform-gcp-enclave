@@ -1,10 +1,10 @@
 locals {
   wif_audience = "//iam.googleapis.com/${google_iam_workload_identity_pool_provider.aws_access.name}"
-  service_accounts_access = [
-    for sa in local.service_accounts : {
-      name  = sa.name
-      roles = sa.roles
-      email = google_service_account.sa[sa.name].email
+  security_contexts_access = [
+    for ctx in var.security_contexts : {
+      name  = ctx.name
+      roles = concat(local.read_only_roles, ctx.extra_roles)
+      email = google_service_account.sa[ctx.name].email
     }
   ]
   cost_source_locations = [
@@ -25,9 +25,9 @@ output "wif_audience" {
   value       = local.wif_audience
 }
 
-output "service_accounts_access" {
-  description = "Access details for each service account."
-  value       = local.service_accounts_access
+output "security_contexts_access" {
+  description = "Access details for each security context."
+  value       = local.security_contexts_access
 }
 
 output "organizations" {
@@ -49,9 +49,11 @@ output "access_blob" {
   description = "All other outputs crammed into a single copy/pasteable value."
   value = base64encode(jsonencode({
     infrastructure = {
-      projectId    = local.project_id
-      relayOAuthId = google_service_account.events_relay.unique_id
-      wifAudience  = local.wif_audience
+      projectId          = local.project_id
+      relayOAuthId       = google_service_account.events_relay.unique_id
+      wifAudience        = local.wif_audience
+      wifReadOnlyEmail   = google_service_account.sa["stk-read-only"].email
+      wifCostQueryEmail  = google_service_account.sa["stk-cost-query"].email
     }
     organizations = [
       for org in var.organizations : {
@@ -66,7 +68,7 @@ output "access_blob" {
         location     = s.location
       }
     ]
-    serviceAccounts = local.service_accounts_access
+    securityContexts = local.security_contexts_access
     roundtripDigest = var.roundtrip_digest
   }))
 }
