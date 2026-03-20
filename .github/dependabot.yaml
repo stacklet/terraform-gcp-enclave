@@ -10,5 +10,9 @@ updates:
     directory: relay_forwarder/
     schedule:
       interval: weekly
+    groups:
+      all:
+        patterns:
+          - "*"
     commit-message:
       prefix: chore
