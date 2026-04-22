@@ -38,7 +38,6 @@
 | <a name="output_access_blob"></a> [access\_blob](#output\_access\_blob) | All other outputs crammed into a single copy/pasteable value. |
 | <a name="output_cost_sources"></a> [cost\_sources](#output\_cost\_sources) | The location of each cost source table. |
 | <a name="output_infrastructure"></a> [infrastructure](#output\_infrastructure) | Core infrastructure details for this deployment. |
-| <a name="output_legacy_cost_access_blob"></a> [legacy\_cost\_access\_blob](#output\_legacy\_cost\_access\_blob) | n/a |
 | <a name="output_organizations"></a> [organizations](#output\_organizations) | The organizations configured in this deployment. |
 | <a name="output_security_contexts"></a> [security\_contexts](#output\_security\_contexts) | Access details for each security context. |
 <!-- END_TF_DOCS -->
