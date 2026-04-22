@@ -1,5 +1,43 @@
+data "google_organization" "conf" {
+  for_each = local.org_ids
+
+  organization = each.key
+}
+
+data "google_folder" "conf" {
+  for_each = local.folder_ids
+
+  folder = each.key
+}
+
+data "google_project" "conf" {
+  for_each = local.project_ids
+
+  project_id = each.key
+}
+
 locals {
   builtin_roles = local.read_only_roles
+
+  organizations = [
+    for org in var.organizations : {
+      id   = org.org_id
+      name = data.google_organization.conf[org.org_id].domain
+      folders = [
+        for folder_id in org.folder_ids : {
+          id   = folder_id
+          name = data.google_folder.conf[folder_id].display_name
+        }
+      ]
+      projects = [
+        for project_id in org.project_ids : {
+          id     = project_id
+          number = data.google_project.conf[project_id].number
+        }
+      ]
+    }
+  ]
+
   infrastructure = {
     project_id = local.project_id
     relay = {
@@ -14,6 +52,7 @@ locals {
     }
     builtin_roles = local.builtin_roles
   }
+
   security_contexts = [
     for ctx in var.security_contexts : {
       name        = ctx.name
@@ -21,6 +60,7 @@ locals {
       principal   = google_service_account.sa[ctx.name].email
     }
   ]
+
   cost_sources = [
     for s in var.cost_sources : {
       billing_table = s.billing_table
@@ -41,7 +81,7 @@ output "security_contexts" {
 
 output "organizations" {
   description = "The organizations configured in this deployment."
-  value       = var.organizations
+  value       = local.organizations
 }
 
 output "cost_sources" {
@@ -64,13 +104,7 @@ output "access_blob" {
       }
       builtinRoles = local.builtin_roles
     }
-    organizations = [
-      for org in var.organizations : {
-        orgId      = org.org_id
-        folderIds  = org.folder_ids
-        projectIds = org.project_ids
-      }
-    ]
+    organizations = local.organizations
     costSources = [
       for s in local.cost_sources : {
         billingTable = s.billing_table
