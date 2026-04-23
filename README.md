@@ -1,5 +1,14 @@
 # Terraform module to integrate a Stacklet deployment with GCP
 
+This repository provide a module to deploy a GCP integration setup for
+Stacklet.
+
+Please refer to the official documentation for how to configure it.
+
+**Note** that in order to provide back selected organization names to the
+Stacklet deployment, the module needs the `gcloud` CLI. This is not required,
+in which casea fallback name will be returned.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

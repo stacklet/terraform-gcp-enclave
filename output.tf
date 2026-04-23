@@ -1,3 +1,7 @@
+# Use "gcloud" to check if it's possible to get the organizations details, so
+# that a fallback name can be used in case of lacking permissions.  This works
+# also if the CLI is not installed, in which case it will just return the
+# fallback names.
 data "external" "org_access" {
   for_each = local.org_ids
 
