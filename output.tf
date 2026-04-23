@@ -1,4 +1,5 @@
 locals {
+  builtin_roles = local.read_only_roles
   infrastructure = {
     project_id = local.project_id
     relay = {
@@ -11,12 +12,13 @@ locals {
         cost_query = google_service_account.sa["stk-cost-query"].email
       }
     }
+    builtin_roles = local.builtin_roles
   }
   security_contexts = [
     for ctx in var.security_contexts : {
-      name      = ctx.name
-      roles     = concat(local.read_only_roles, ctx.extra_roles)
-      principal = google_service_account.sa[ctx.name].email
+      name        = ctx.name
+      extra_roles = ctx.extra_roles
+      principal   = google_service_account.sa[ctx.name].email
     }
   ]
   cost_sources = [
@@ -60,6 +62,7 @@ output "access_blob" {
           costQuery = local.infrastructure.wif.principals.cost_query
         }
       }
+      builtinRoles = local.builtin_roles
     }
     organizations = [
       for org in var.organizations : {
@@ -74,7 +77,13 @@ output "access_blob" {
         location     = s.location
       }
     ]
-    securityContexts = local.security_contexts
-    roundtripDigest  = var.roundtrip_digest
+    securityContexts = [
+      for c in local.security_contexts : {
+        name       = c.name
+        extraRoles = c.extra_roles
+        principal  = c.principal
+      }
+    ]
+    roundtripDigest = var.roundtrip_digest
   }))
 }
