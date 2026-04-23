@@ -20,7 +20,7 @@ locals {
       for ctx in var.security_contexts : {
         name  = ctx.name
         trust = [var.integration_surface.trust_aws.execution_role_name]
-        roles = concat(local.read_only_roles, ctx.extra_roles)
+        roles = distinct(concat(local.read_only_roles, ctx.extra_roles))
       }
     ],
   )
