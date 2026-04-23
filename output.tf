@@ -23,7 +23,7 @@ data "google_project" "conf" {
 }
 
 locals {
-  builtin_roles = local.read_only_roles
+  baseline_roles = local.read_only_roles
 
   organizations = [
     for org in var.organizations : {
@@ -56,7 +56,7 @@ locals {
         cost_query = google_service_account.sa["stk-cost-query"].email
       }
     }
-    builtin_roles = local.builtin_roles
+    baseline_roles = local.baseline_roles
   }
 
   security_contexts = [
@@ -108,7 +108,7 @@ output "access_blob" {
           costQuery = local.infrastructure.wif.principals.cost_query
         }
       }
-      builtinRoles = local.builtin_roles
+      baselineRoles = local.baseline_roles
     }
     organizations = local.organizations
     costSources = [
