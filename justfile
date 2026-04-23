@@ -41,3 +41,12 @@ docs:
 # run go tests
 test:
     env -C relay_forwarder go test -race ./...
+
+# Update golang dependencies
+update-deps-go:
+    #!/usr/bin/env bash
+    set -e
+
+    cd relay_forwarder
+    go get -u
+    go mod tidy

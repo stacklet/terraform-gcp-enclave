@@ -1,5 +1,53 @@
+# Use "gcloud" to check if it's possible to get the organizations details, so
+# that a fallback name can be used in case of lacking permissions.  This works
+# also if the CLI is not installed, in which case it will just return the
+# fallback names.
+data "external" "org_access" {
+  for_each = local.org_ids
+
+  program = ["bash", "-c", "gcloud organizations describe '${each.key}' >/dev/null && printf '{\"ok\":\"true\"}' || printf '{\"ok\":\"false\"}'"]
+}
+
+data "google_organization" "conf" {
+  for_each = toset([for id, r in data.external.org_access : id if r.result.ok == "true"])
+
+  organization = each.key
+}
+
+data "google_folder" "conf" {
+  for_each = local.folder_ids
+
+  folder = each.key
+}
+
+data "google_project" "conf" {
+  for_each = local.project_ids
+
+  project_id = each.key
+}
+
 locals {
-  builtin_roles = local.read_only_roles
+  baseline_roles = local.read_only_roles
+
+  organizations = [
+    for org in var.organizations : {
+      id   = org.org_id
+      name = try(data.google_organization.conf[org.org_id].domain, "Org ${org.org_id}")
+      folders = [
+        for folder_id in org.folder_ids : {
+          id   = folder_id
+          name = data.google_folder.conf[folder_id].display_name
+        }
+      ]
+      projects = [
+        for project_id in org.project_ids : {
+          id     = project_id
+          number = data.google_project.conf[project_id].number
+        }
+      ]
+    }
+  ]
+
   infrastructure = {
     project_id = local.project_id
     relay = {
@@ -12,8 +60,9 @@ locals {
         cost_query = google_service_account.sa["stk-cost-query"].email
       }
     }
-    builtin_roles = local.builtin_roles
+    baseline_roles = local.baseline_roles
   }
+
   security_contexts = [
     for ctx in var.security_contexts : {
       name        = ctx.name
@@ -21,6 +70,7 @@ locals {
       principal   = google_service_account.sa[ctx.name].email
     }
   ]
+
   cost_sources = [
     for s in var.cost_sources : {
       billing_table = s.billing_table
@@ -41,7 +91,7 @@ output "security_contexts" {
 
 output "organizations" {
   description = "The organizations configured in this deployment."
-  value       = var.organizations
+  value       = local.organizations
 }
 
 output "cost_sources" {
@@ -62,15 +112,9 @@ output "access_blob" {
           costQuery = local.infrastructure.wif.principals.cost_query
         }
       }
-      builtinRoles = local.builtin_roles
+      baselineRoles = local.baseline_roles
     }
-    organizations = [
-      for org in var.organizations : {
-        orgId      = org.org_id
-        folderIds  = org.folder_ids
-        projectIds = org.project_ids
-      }
-    ]
+    organizations = local.organizations
     costSources = [
       for s in local.cost_sources : {
         billingTable = s.billing_table

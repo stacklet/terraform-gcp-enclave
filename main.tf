@@ -15,6 +15,7 @@ locals {
     for e in var.organizations :
     (length(e.folder_ids) + length(e.project_ids)) == 0 ? e.org_id : null
   ]))
+  org_ids     = toset([for org in var.organizations : org.org_id])
   folder_ids  = toset(flatten([for e in var.organizations : e.folder_ids]))
   project_ids = toset(flatten([for e in var.organizations : e.project_ids]))
 
