@@ -7,6 +7,7 @@
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.11 |
 | <a name="requirement_archive"></a> [archive](#requirement\_archive) | ~> 2.7 |
+| <a name="requirement_external"></a> [external](#requirement\_external) | ~> 2.3 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 7.18 |
 | <a name="requirement_time"></a> [time](#requirement\_time) | ~> 0.12 |
 
@@ -15,6 +16,7 @@
 | Name | Version |
 |------|---------|
 | <a name="provider_archive"></a> [archive](#provider\_archive) | ~> 2.7 |
+| <a name="provider_external"></a> [external](#provider\_external) | ~> 2.3 |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 7.18 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 | <a name="provider_time"></a> [time](#provider\_time) | ~> 0.12 |

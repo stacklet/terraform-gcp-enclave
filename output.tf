@@ -1,5 +1,11 @@
-data "google_organization" "conf" {
+data "external" "org_access" {
   for_each = local.org_ids
+
+  program = ["bash", "-c", "gcloud organizations describe '${each.key}' >/dev/null && printf '{\"ok\":\"true\"}' || printf '{\"ok\":\"false\"}'"]
+}
+
+data "google_organization" "conf" {
+  for_each = toset([for id, r in data.external.org_access : id if r.result.ok == "true"])
 
   organization = each.key
 }
@@ -22,7 +28,7 @@ locals {
   organizations = [
     for org in var.organizations : {
       id   = org.org_id
-      name = data.google_organization.conf[org.org_id].domain
+      name = try(data.google_organization.conf[org.org_id].domain, "Org ${org.org_id}")
       folders = [
         for folder_id in org.folder_ids : {
           id   = folder_id
