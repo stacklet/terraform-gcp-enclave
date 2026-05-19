@@ -7,7 +7,76 @@ Please refer to the official documentation for how to configure it.
 
 **Note** that in order to provide back selected organization names to the
 Stacklet deployment, the module needs the `gcloud` CLI. This is not required,
-in which casea fallback name will be returned.
+in which case a fallback name will be returned.
+
+## Required Permissions for the Terraform Runner
+
+The user or automation running the terraform configuration needs the APIs
+and roles listed below. They span billing-account and resource-hierarchy
+(organization, folder, or project) scopes.
+
+These permissions are needed **only at deployment time** — while the Terraform
+configuration is being applied to set up or update the integration. They are
+distinct from the runtime permissions Stacklet uses to operate against the
+GCP environment; those are managed by the module itself via the
+`security_contexts` input and a baseline set of read-only roles
+(`roles/browser`, `roles/cloudasset.viewer`, `roles/iam.securityReviewer`,
+`roles/viewer`).
+
+
+### APIs to enable in the runner's project
+
+The runner makes API calls into its own project to read billing and asset
+metadata. Enable the following services on whichever project the runner is
+authenticated to:
+
+- `cloudbilling.googleapis.com`
+- `cloudasset.googleapis.com`
+
+### Billing-account permissions
+
+Granted on whichever billing account will pay for the relay project's
+resources.
+
+| Role | Purpose |
+|---|---|
+| `roles/billing.user` | Attach the billing account to the relay project. |
+
+### Required IAM roles
+
+Granted on the scope (organization, folder, or project) that contains the
+resources the module manages. GCP IAM inheritance means a higher-scope grant
+(e.g. at the organization root) covers all resources beneath it, which is
+the simplest setup; narrower grants also work when onboarding is limited to
+specific folders or projects.
+
+| Role | Purpose |
+|---|---|
+| `roles/resourcemanager.projectCreator` †  | Create the relay project. |
+| `roles/resourcemanager.organizationAdmin` | Set IAM bindings on resources the module manages. |
+| `roles/cloudasset.owner`                  | Create Cloud Asset feeds. |
+| `roles/logging.admin`                     | Create logging sinks. |
+| `roles/securitycenter.admin`              | Create Security Command Center notification configs. |
+
+† Only required when the module is creating the relay project (i.e. when
+`infrastructure.create_project` is set). Grant this role at the project's
+parent — the organization (`create_project.org_id`) or folder
+(`create_project.folder_id`) where the project will be created. It cannot
+be granted at project scope.
+
+### Cost export — additional permissions when billing export lives outside the relay project
+
+If the BigQuery dataset that holds the GCP billing export is in a different
+project than the relay project this module creates, the runner needs owner
+access on the export so the module can grant Stacklet read access to it.
+
+| Role | Granted where |
+|---|---|
+| `roles/bigquery.dataOwner` | The billing-export project specifically, or at the org level to cover all current and future exports. |
+
+If the billing export is co-located with the relay project, the project-level
+permissions granted by `roles/resourcemanager.projectCreator` are sufficient
+and this additional role is not required.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
