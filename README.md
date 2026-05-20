@@ -38,8 +38,8 @@ authenticated to:
 Granted on whichever billing account will pay for the relay project's
 resources.
 
-| Role | Purpose |
-|---|---|
+| Role                 | Purpose                                           |
+|----------------------|---------------------------------------------------|
 | `roles/billing.user` | Attach the billing account to the relay project. |
 
 ### Required IAM roles
@@ -50,12 +50,12 @@ resources the module manages. GCP IAM inheritance means a higher-scope grant
 the simplest setup; narrower grants also work when onboarding is limited to
 specific folders or projects.
 
-| Role | Purpose |
-|---|---|
-| `roles/resourcemanager.projectCreator` †  | Create the relay project. |
-| `roles/resourcemanager.organizationAdmin` | Set IAM bindings on resources the module manages. |
-| `roles/cloudasset.owner`                  | Create Cloud Asset feeds. |
-| `roles/logging.admin`                     | Create logging sinks. |
+| Role                                      | Purpose                                              |
+|-------------------------------------------|------------------------------------------------------|
+| `roles/resourcemanager.projectCreator` †  | Create the relay project.                            |
+| `roles/resourcemanager.organizationAdmin` | Set IAM bindings on resources the module manages.    |
+| `roles/cloudasset.owner`                  | Create Cloud Asset feeds.                            |
+| `roles/logging.admin`                     | Create logging sinks.                                |
 | `roles/securitycenter.admin`              | Create Security Command Center notification configs. |
 
 † Only required when the module is creating the relay project (i.e. when
@@ -70,8 +70,8 @@ If the BigQuery dataset that holds the GCP billing export is in a different
 project than the relay project this module creates, the runner needs owner
 access on the export so the module can grant Stacklet read access to it.
 
-| Role | Granted where |
-|---|---|
+| Role                       | Granted where                                                                                         |
+|----------------------------|-------------------------------------------------------------------------------------------------------|
 | `roles/bigquery.dataOwner` | The billing-export project specifically, or at the org level to cover all current and future exports. |
 
 If the billing export is co-located with the relay project, the project-level
