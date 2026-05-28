@@ -35,8 +35,9 @@ authenticated to:
 
 ### Billing-account permissions
 
-Granted on whichever billing account will pay for the relay project's
-resources.
+Only required when the module is creating the relay project (i.e. when
+`infrastructure.create_project` is set). Granted on whichever billing account
+will pay for the relay project's resources.
 
 | Role                 | Purpose                                           |
 |----------------------|---------------------------------------------------|
@@ -64,6 +65,20 @@ parent — the organization (`create_project.org_id`) or folder
 (`create_project.folder_id`) where the project will be created. It cannot
 be granted at project scope.
 
+**When using a pre-existing relay project** (`infrastructure.create_project` is
+not set), omit `roles/resourcemanager.projectCreator` and
+`roles/billing.user`. Instead:
+
+1. Enable the following APIs on the relay project before running Terraform:
+   - `cloudasset.googleapis.com`
+   - `cloudbilling.googleapis.com`
+   - `cloudresourcemanager.googleapis.com`
+   - `serviceusage.googleapis.com`
+2. Grant `roles/owner` to the runner service account on the relay project.
+
+The remaining org/folder-level roles above and the cost export permissions
+below still apply.
+
 ### Cost export — additional permissions when billing export lives outside the relay project
 
 If the BigQuery dataset that holds the GCP billing export is in a different
@@ -74,9 +89,10 @@ access on the export so the module can grant Stacklet read access to it.
 |----------------------------|-------------------------------------------------------------------------------------------------------|
 | `roles/bigquery.dataOwner` | The billing-export project specifically, or at the org level to cover all current and future exports. |
 
-If the billing export is co-located with the relay project, the project-level
-permissions granted by `roles/resourcemanager.projectCreator` are sufficient
-and this additional role is not required.
+If the billing export is co-located with the relay project and the runner
+created the relay project (making it project owner), the additional
+`roles/bigquery.dataOwner` grant is not required — project ownership already
+includes those permissions.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
