@@ -75,9 +75,9 @@ not set), omit `roles/resourcemanager.projectCreator` and
    - `cloudresourcemanager.googleapis.com`
    - `serviceusage.googleapis.com`
 2. Grant `roles/owner` to the runner service account on the relay project.
-
-The remaining org/folder-level roles above and the cost export permissions
-below still apply.
+3. Grant the org/folder-level roles (`roles/resourcemanager.organizationAdmin`,
+   `roles/cloudasset.owner`, `roles/logging.admin`, `roles/securitycenter.admin`)
+   as described above, and the cost export permissions below if applicable.
 
 ### Cost export — additional permissions when billing export lives outside the relay project
 
